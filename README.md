@@ -21,10 +21,9 @@ Ky është versioni demo i platformës Noteria.com, ndërtuar 100% me PHP dhe My
 3. Konfiguroni `config.php` dhe `confidb.php` me kredencialet e databazës tuaj.
 4. Hapni projektin në shfletues:  
    ```
-   http://localhost/noteria
+   http://localhost/emri-projektit
    ```
 
 ## Kontakt
 Autori: Valon Sadiku  
 Email: valonsadiku2018@gmail.com
-
