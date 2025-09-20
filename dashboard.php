@@ -1,4 +1,345 @@
 <?php
+session_start();
+require_once 'config.php';
+require_once 'confidb.php';
+
+// Kontrollo nëse përdoruesi është i kyçur
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$stmt = $pdo->prepare('SELECT roli, zyra_id FROM users WHERE id = ?');
+$stmt->execute([$user_id]);
+$user = $stmt->fetch();
+$roli = $user['roli'];
+$zyra_id = $user['zyra_id'];
+
+$success = null;
+$error = null;
+
+// Ruaj aplikimin në konkurs nga përdorues i thjeshtë
+if ($roli !== 'zyra' && $roli !== 'admin' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apliko_konkurs'])) {
+    $konkurs_id = intval($_POST['konkurs_id'] ?? 0);
+    $emri = trim($_POST['emri'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $telefoni = trim($_POST['telefoni'] ?? '');
+    $mesazhi = trim($_POST['mesazhi'] ?? '');
+    // Lista e fjalëve të ndaluara
+    $banWords = [
+        // Shqip
+        "qir", "qirje", "qif", "qifsha", "qifsh", "qifem", "qifet", "qifemi", "qifeni", "qifeni", "qifsha", "qifshin",
+        "pidh", "pidhi", "pidha", "pidhar", "pidharë", "pidharja", "pidharin", "pidhat", "pidhin", "pidhar", "pidharin",
+        "mut", "muti", "muter", "mutra", "mutrat", "mutin", "mutave", "mutera", "mutera", "mutera",
+        "buth", "buthi", "buthat", "buthin", "buthave", "buthash", "buthash", "buthash",
+        "k*rv", "kerv", "kurv", "kurva", "kurvat", "kurvash", "kurvave", "kurvëri", "kurveri", "kurveria", "kurverit",
+        "t'qifsha", "t'qifsha nanen", "t'qifsha motren", "t'qifsha ropt", "t'qifsha familjen", "t'qifsha grun", "t'qifsha burrin",
+        "rrot kari", "kari", "kar", "karet", "karin", "karit", "karash", "karash", "karash",
+        "byth", "bytha", "bythen", "bythes", "bythash", "bythave", "bythqim", "bythqimi", "bythqimash",
+        "pall", "palla", "pallim", "pallin", "pallova", "pallon", "palloj", "pallojme", "palloni",
+        "leshi", "lesh", "leshko", "leshkat", "leshkat", "leshkat",
+        "pick", "picka", "picken", "pickes", "pickash", "pickave",
+        "robt", "ropt", "ropt e shpis", "robt e shpis", "robt e familjes", "ropt e familjes",
+        "nanen", "nana", "motren", "motra", "babën", "babai", "babën", "babai",
+        // Serbisht
+        "pička", "picka", "kurac", "kurcem", "kurcemu", "kurcemom", "kurcemu", "kurcemom", "kurcemu", "kurcemom",
+        "jebem", "jebati", "jebac", "jebacu", "jebiga", "jebote", "jebemti", "jebem ti", "jebem ti mater", "jebem ti majku",
+        "govno", "guzica", "guzicu", "guzice", "guzici", "guzicom", "guzicu", "guzice", "guzici", "guzicom",
+        "picka", "picku", "picke", "picki", "pickom", "picku", "picke", "picki", "pickom",
+        "kurva", "kurve", "kurvi", "kurvo", "kurvama", "kurvama", "kurvama",
+        "pizda", "pizde", "pizdi", "pizdo", "pizdama", "pizdama", "pizdama",
+        "sisa", "sise", "sisu", "sisi", "sisom", "sisu", "sise", "sisi", "sisom",
+        "majku ti jebem", "mater ti jebem", "jebem ti mater", "jebem ti majku",
+        // Anglisht
+        "fuck", "fucking", "fucker", "motherfucker", "motherfuckers", "fucked", "fucks", "fuk", "fuking",
+        "shit", "shitty", "shitting", "shitted", "shits",
+        "bitch", "bitches", "bitching", "bitchy",
+        "cunt", "cunts", "cunting",
+        "dick", "dicks", "dicking", "dicked",
+        "asshole", "assholes", "assholic",
+        "bastard", "bastards", "bastardly",
+        "slut", "sluts", "slutty",
+        "whore", "whores", "whoring",
+        "pussy", "pussies", "pussying",
+        "cock", "cocks", "cocking", "cocked",
+        "jerk", "jerks", "jerking", "jerked",
+        "douche", "douchebag", "douchebags",
+        "bollocks", "bugger", "wanker", "tosser", "prick", "twat", "arsehole", "arse", "arseholes",
+        "motherfucker", "motherfuckers", "faggot", "faggots", "fag", "fags", "homo", "homos", "gay", "gays"
+    ];
+    function normalizeText($text) {
+        $text = strtolower($text);
+        $text = str_replace(['*', '3', '@', '!', '$', '0'], ['e', 'e', 'a', 'i', 's', 'o'], $text);
+        return $text;
+    }
+    function containsBanWord($text, $banWords) {
+        $normalized = normalizeText($text);
+        foreach ($banWords as $word) {
+            $pattern = "/\\b" . preg_quote($word, '/') . "\\b/i";
+            if (preg_match($pattern, $normalized)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function logBlockedAttempt($text, $userId = 'anonim') {
+        $log = date('Y-m-d H:i:s') . " | User: $userId | Text: $text\n";
+        file_put_contents('blocked_attempts.log', $log, FILE_APPEND);
+    }
+    // Kontrollo të gjitha fushat tekstuale për fjalë të ndaluara
+    $fieldsToCheck = [$emri, $mesazhi];
+    $hasBanWord = false;
+    foreach ($fieldsToCheck as $field) {
+        if (containsBanWord($field, $banWords)) {
+            $hasBanWord = true;
+            break;
+        }
+    }
+    if ($hasBanWord) {
+        logBlockedAttempt($emri . ' | ' . $mesazhi, $_SESSION['user_id'] ?? 'anonim');
+        $aplikim_error = '❌ Përmbajtja përmban fjalë të papërshtatshme. Ju lutemi rishikoni tekstin.';
+    } elseif ($konkurs_id && $emri && $email && $telefoni && $mesazhi) {
+        $stmt = $pdo->prepare('INSERT INTO aplikimet_konkurs (konkurs_id, user_id, emri, email, telefoni, mesazhi) VALUES (?, ?, ?, ?, ?, ?)');
+        if ($stmt->execute([$konkurs_id, $user_id, $emri, $email, $telefoni, $mesazhi])) {
+            $aplikim_sukses = true;
+        } else {
+            $aplikim_error = 'Gabim gjatë aplikimit!';
+        }
+    } else {
+        $aplikim_error = 'Ju lutemi plotësoni të gjitha fushat!';
+    }
+}
+
+// Ruaj konkursin nëse është dërguar forma
+if ($roli === 'zyra' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['posto_konkurs'])) {
+    $pozita = trim($_POST['pozita'] ?? '');
+    $pershkrimi = trim($_POST['pershkrimi'] ?? '');
+    $afati = $_POST['afati'] ?? '';
+    if ($pozita && $pershkrimi && $afati) {
+        $stmt = $pdo->prepare('INSERT INTO konkurset (zyra_id, pozita, pershkrimi, afati) VALUES (?, ?, ?, ?)');
+        if ($stmt->execute([$zyra_id, $pozita, $pershkrimi, $afati])) {
+            $success = 'Konkursi u postua me sukses!';
+        } else {
+            $error = 'Gabim gjatë postimit të konkursit!';
+        }
+    } else {
+        $error = 'Ju lutemi plotësoni të gjitha fushat!';
+    }
+}
+
+?><!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Paneli i Zyrës Noteriale | Shpallje Pune</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: linear-gradient(120deg, #e2eafc 0%, #f8fafc 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 700px;
+            margin: 48px auto 0 auto;
+            padding: 36px 32px;
+            border-radius: 22px;
+            background: #fff;
+            box-shadow: 0 8px 32px rgba(44,108,223,0.13);
+        }
+        h1 {
+            color: #2d6cdf;
+            margin-bottom: 32px;
+            font-size: 2.2rem;
+            font-weight: 800;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        .konkurs-section {
+            background: #f8fafc;
+            border-radius: 18px;
+            padding: 32px 28px;
+            margin-bottom: 36px;
+            box-shadow: 0 4px 24px rgba(44,108,223,0.10);
+            animation: fadeInUp 0.7s cubic-bezier(.39,.575,.56,1) both;
+        }
+        .konkurs-section h2 {
+            color: #184fa3;
+            margin-bottom: 22px;
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        .form-group {
+            margin-bottom: 22px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #2d6cdf;
+            font-weight: 700;
+            font-size: 1.08rem;
+        }
+        input[type="text"], input[type="date"], textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid #e2eafc;
+            border-radius: 10px;
+            font-size: 1.08rem;
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus, textarea:focus {
+            border-color: #2d6cdf;
+            outline: none;
+            box-shadow: 0 0 0 2px #e2eafc;
+        }
+        button {
+            background: linear-gradient(90deg, #2d6cdf 60%, #184fa3 100%);
+            color: white;
+            padding: 14px 0;
+            border: none;
+            border-radius: 50px;
+            width: 100%;
+            font-size: 1.15rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            margin-top: 10px;
+            box-shadow: 0 4px 16px rgba(44,108,223,0.10);
+        }
+        button:hover {
+            background: #184fa3;
+            transform: translateY(-2px) scale(1.01);
+        }
+        .success {
+            color: #388e3c;
+            background: #eafaf1;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 22px;
+            font-size: 1.08rem;
+            text-align: center;
+            border-left: 5px solid #388e3c;
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffeaea;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 22px;
+            font-size: 1.08rem;
+            text-align: center;
+            border-left: 5px solid #d32f2f;
+        }
+        .konkurset-list {
+            margin-top: 24px;
+        }
+        .konkurs-item {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(44,108,223,0.07);
+            padding: 18px 20px;
+            margin-bottom: 18px;
+            border-left: 6px solid #2d6cdf;
+        }
+        .konkurs-item h3 {
+            margin: 0 0 8px 0;
+            color: #184fa3;
+            font-size: 1.18rem;
+            font-weight: 700;
+        }
+        .konkurs-item .afati {
+            color: #2d6cdf;
+            font-size: 0.98rem;
+            font-weight: 600;
+        }
+        .konkurs-item .pershkrimi {
+            color: #333;
+            font-size: 1.04rem;
+            margin: 8px 0 0 0;
+        }
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-bullhorn"></i> Shpallje Pune nga Zyra Noteriale</h1>
+        <?php if ($roli === 'zyra'): ?>
+        <div class="konkurs-section">
+            <h2><i class="fas fa-plus-circle"></i> Posto Konkurs të Ri</h2>
+            <?php if ($success): ?><div class="success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
+            <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="pozita">Pozita e Punës</label>
+                    <input type="text" name="pozita" id="pozita" required placeholder="P.sh. Asistent Noterial, Sekretar...">
+                </div>
+                <div class="form-group">
+                    <label for="pershkrimi">Përshkrimi i Detyrave</label>
+                    <textarea name="pershkrimi" id="pershkrimi" rows="4" required placeholder="Përshkruani detyrat dhe kërkesat për këtë pozitë..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="afati">Afati i Aplikimit</label>
+                    <input type="date" name="afati" id="afati" required>
+                </div>
+                <button type="submit" name="posto_konkurs"><i class="fas fa-paper-plane"></i> Posto Konkursin</button>
+            </form>
+        </div>
+        <?php endif; ?>
+        <div class="konkurset-list">
+            <h2><i class="fas fa-list"></i> Konkursët e Shpallur</h2>
+            <?php
+            $stmt = $pdo->query('SELECT k.id, k.pozita, k.pershkrimi, k.afati, k.created_at, z.emri AS zyra_emri FROM konkurset k JOIN zyrat z ON k.zyra_id = z.id ORDER BY k.created_at DESC');
+            if ($stmt->rowCount() > 0) {
+                while ($row = $stmt->fetch()) {
+                    echo '<div class="konkurs-item">';
+                    echo '<h3>' . htmlspecialchars($row['pozita']) . ' <span style="font-size:0.95em;font-weight:400;color:#184fa3;">(' . htmlspecialchars($row['zyra_emri']) . ')</span></h3>';
+                    echo '<div class="afati"><i class="fas fa-calendar-alt"></i> Afati i aplikimit: ' . htmlspecialchars($row['afati']) . '</div>';
+                    echo '<div class="pershkrimi">' . nl2br(htmlspecialchars($row['pershkrimi'])) . '</div>';
+                    echo '<div style="font-size:0.92em;color:#888;margin-top:6px;">Publikuar më: ' . htmlspecialchars($row['created_at']) . '</div>';
+                    if ($roli !== 'zyra' && $roli !== 'admin') {
+                        echo '<div class="apliko-section" style="margin-top:18px;">';
+                        if (isset($aplikim_sukses) && $aplikim_sukses && isset($_POST['konkurs_id']) && $_POST['konkurs_id'] == $row['id']) {
+                            echo '<div class="success">Aplikimi u dërgua me sukses!</div>';
+                        } elseif (isset($aplikim_error) && isset($_POST['konkurs_id']) && $_POST['konkurs_id'] == $row['id']) {
+                            echo '<div class="error">' . htmlspecialchars($aplikim_error) . '</div>';
+                        }
+                        echo '<form method="POST" class="apliko-form" enctype="multipart/form-data" style="background:#f8fafc;padding:18px 16px;border-radius:12px;box-shadow:0 2px 8px rgba(44,108,223,0.07);">';
+                        echo '<input type="hidden" name="konkurs_id" value="' . $row['id'] . '">';
+                        echo '<div class="form-group"><label>Emri</label><input type="text" name="emri" required pattern="[A-Za-zÇçËë\s]{2,}" placeholder="Emri"></div>';
+                        echo '<div class="form-group"><label>Mbiemri</label><input type="text" name="mbiemri" required pattern="[A-Za-zÇçËë\s]{2,}" placeholder="Mbiemri"></div>';
+                        echo '<div class="form-group"><label>Email</label><input type="email" name="email" required placeholder="Email-i juaj"></div>';
+                        echo '<div class="form-group"><label>Telefoni</label><input type="text" name="telefoni" required pattern="\+383[1-9]\d{7}" placeholder="p.sh. +38344123456"></div>';
+                        echo '<div class="form-group"><label>Data e lindjes</label><input type="date" name="datelindja" required></div>';
+                        echo '<div class="form-group"><label>Adresa</label><input type="text" name="adresa" required placeholder="Adresa e plotë"></div>';
+                        echo '<div class="form-group"><label>Arsimi</label><input type="text" name="arsimi" required placeholder="P.sh. Bachelor në Drejtësi"></div>';
+                        echo '<div class="form-group"><label>Përvoja e punës</label><input type="text" name="pervoja" required placeholder="P.sh. 2 vite si asistent noterial"></div>';
+                        echo '<div class="form-group"><label>CV (PDF)</label><input type="file" name="cv" accept="application/pdf" required></div>';
+                        echo '<div class="form-group"><label>Letër motivimi</label><textarea name="mesazhi" rows="4" required placeholder="Pse po aplikoni për këtë pozitë? Përshkruani motivimin tuaj..."></textarea></div>';
+                        echo '<button type="submit" name="apliko_konkurs" style="background:#2d6cdf;color:#fff;padding:12px 0;width:100%;border:none;border-radius:8px;font-size:1.1rem;font-weight:700;box-shadow:0 2px 8px rgba(44,108,223,0.08);transition:background 0.2s;"><i class="fas fa-paper-plane"></i> Apliko</button>';
+                        echo '</form>';
+                        echo '</div>';
+                    }
+                    echo '</div>';
+                }
+            } else {
+                echo '<div class="error">Nuk ka asnjë konkurs të shpallur.</div>';
+            }
+            ?>
+        </div>
+
+    </div>
+</body>
+</html>
+<?php
 // filepath: c:\xampp\htdocs\noteria\dashboard.php
 // Konfigurimi i raportimit të gabimeve
 ini_set('display_errors', 0); // Mos shfaq gabime në faqe
@@ -412,6 +753,33 @@ function get_terminet_zyres($pdo, $zyra_id) {
                 ?>
             </div>
         <?php else: ?>
+            <?php if ($roli === 'zyra'): ?>
+            <div class="zyra-section">
+                <h2><i class="fas fa-euro-sign"></i> Pagesat e reja online</h2>
+                <?php
+                // Shfaq pagesat e fundit të bëra për këtë zyrë (nga paysera_gateway.php)
+                $stmt = $pdo->prepare("SELECT p.id, p.user_id, p.service, p.date, p.time, p.amount, p.transaction_id, u.emri, u.mbiemri, u.email, p.created_at FROM payments p JOIN users u ON p.user_id = u.id WHERE p.zyra_id = ? ORDER BY p.created_at DESC LIMIT 10");
+                $stmt->execute([$zyra_id]);
+                if ($stmt->rowCount() > 0) {
+                    echo '<table><tr><th>Paguesi</th><th>Shërbimi</th><th>Data</th><th>Ora</th><th>Shuma</th><th>ID Transaksionit</th><th>Koha</th></tr>';
+                    while ($row = $stmt->fetch()) {
+                        echo '<tr>';
+                        echo '<td>' . htmlspecialchars($row['emri'] . ' ' . $row['mbiemri']) . '<br><span style="font-size:0.95em;color:#888;">' . htmlspecialchars($row['email']) . '</span></td>';
+                        echo '<td>' . htmlspecialchars($row['service']) . '</td>';
+                        echo '<td>' . htmlspecialchars($row['date']) . '</td>';
+                        echo '<td>' . htmlspecialchars($row['time']) . '</td>';
+                        echo '<td>' . number_format($row['amount'],2) . ' €</td>';
+                        echo '<td style="font-size:0.97em;">' . htmlspecialchars($row['transaction_id']) . '</td>';
+                        echo '<td style="font-size:0.97em;">' . htmlspecialchars($row['created_at']) . '</td>';
+                        echo '</tr>';
+                    }
+                    echo '</table>';
+                } else {
+                    echo '<div class="no-data">Nuk ka pagesa të reja online për zyrën tuaj.</div>';
+                }
+                ?>
+            </div>
+            <?php endif; ?>
             <div class="zyra-section">
                 <h2>Informacioni i Zyrës Suaj</h2>
                 <?php
