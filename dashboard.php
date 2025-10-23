@@ -1,345 +1,4 @@
 <?php
-session_start();
-require_once 'config.php';
-require_once 'confidb.php';
-
-// Kontrollo nëse përdoruesi është i kyçur
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
-}
-
-$user_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare('SELECT roli, zyra_id FROM users WHERE id = ?');
-$stmt->execute([$user_id]);
-$user = $stmt->fetch();
-$roli = $user['roli'];
-$zyra_id = $user['zyra_id'];
-
-$success = null;
-$error = null;
-
-// Ruaj aplikimin në konkurs nga përdorues i thjeshtë
-if ($roli !== 'zyra' && $roli !== 'admin' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apliko_konkurs'])) {
-    $konkurs_id = intval($_POST['konkurs_id'] ?? 0);
-    $emri = trim($_POST['emri'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $telefoni = trim($_POST['telefoni'] ?? '');
-    $mesazhi = trim($_POST['mesazhi'] ?? '');
-    // Lista e fjalëve të ndaluara
-    $banWords = [
-        // Shqip
-        "qir", "qirje", "qif", "qifsha", "qifsh", "qifem", "qifet", "qifemi", "qifeni", "qifeni", "qifsha", "qifshin",
-        "pidh", "pidhi", "pidha", "pidhar", "pidharë", "pidharja", "pidharin", "pidhat", "pidhin", "pidhar", "pidharin",
-        "mut", "muti", "muter", "mutra", "mutrat", "mutin", "mutave", "mutera", "mutera", "mutera",
-        "buth", "buthi", "buthat", "buthin", "buthave", "buthash", "buthash", "buthash",
-        "k*rv", "kerv", "kurv", "kurva", "kurvat", "kurvash", "kurvave", "kurvëri", "kurveri", "kurveria", "kurverit",
-        "t'qifsha", "t'qifsha nanen", "t'qifsha motren", "t'qifsha ropt", "t'qifsha familjen", "t'qifsha grun", "t'qifsha burrin",
-        "rrot kari", "kari", "kar", "karet", "karin", "karit", "karash", "karash", "karash",
-        "byth", "bytha", "bythen", "bythes", "bythash", "bythave", "bythqim", "bythqimi", "bythqimash",
-        "pall", "palla", "pallim", "pallin", "pallova", "pallon", "palloj", "pallojme", "palloni",
-        "leshi", "lesh", "leshko", "leshkat", "leshkat", "leshkat",
-        "pick", "picka", "picken", "pickes", "pickash", "pickave",
-        "robt", "ropt", "ropt e shpis", "robt e shpis", "robt e familjes", "ropt e familjes",
-        "nanen", "nana", "motren", "motra", "babën", "babai", "babën", "babai",
-        // Serbisht
-        "pička", "picka", "kurac", "kurcem", "kurcemu", "kurcemom", "kurcemu", "kurcemom", "kurcemu", "kurcemom",
-        "jebem", "jebati", "jebac", "jebacu", "jebiga", "jebote", "jebemti", "jebem ti", "jebem ti mater", "jebem ti majku",
-        "govno", "guzica", "guzicu", "guzice", "guzici", "guzicom", "guzicu", "guzice", "guzici", "guzicom",
-        "picka", "picku", "picke", "picki", "pickom", "picku", "picke", "picki", "pickom",
-        "kurva", "kurve", "kurvi", "kurvo", "kurvama", "kurvama", "kurvama",
-        "pizda", "pizde", "pizdi", "pizdo", "pizdama", "pizdama", "pizdama",
-        "sisa", "sise", "sisu", "sisi", "sisom", "sisu", "sise", "sisi", "sisom",
-        "majku ti jebem", "mater ti jebem", "jebem ti mater", "jebem ti majku",
-        // Anglisht
-        "fuck", "fucking", "fucker", "motherfucker", "motherfuckers", "fucked", "fucks", "fuk", "fuking",
-        "shit", "shitty", "shitting", "shitted", "shits",
-        "bitch", "bitches", "bitching", "bitchy",
-        "cunt", "cunts", "cunting",
-        "dick", "dicks", "dicking", "dicked",
-        "asshole", "assholes", "assholic",
-        "bastard", "bastards", "bastardly",
-        "slut", "sluts", "slutty",
-        "whore", "whores", "whoring",
-        "pussy", "pussies", "pussying",
-        "cock", "cocks", "cocking", "cocked",
-        "jerk", "jerks", "jerking", "jerked",
-        "douche", "douchebag", "douchebags",
-        "bollocks", "bugger", "wanker", "tosser", "prick", "twat", "arsehole", "arse", "arseholes",
-        "motherfucker", "motherfuckers", "faggot", "faggots", "fag", "fags", "homo", "homos", "gay", "gays"
-    ];
-    function normalizeText($text) {
-        $text = strtolower($text);
-        $text = str_replace(['*', '3', '@', '!', '$', '0'], ['e', 'e', 'a', 'i', 's', 'o'], $text);
-        return $text;
-    }
-    function containsBanWord($text, $banWords) {
-        $normalized = normalizeText($text);
-        foreach ($banWords as $word) {
-            $pattern = "/\\b" . preg_quote($word, '/') . "\\b/i";
-            if (preg_match($pattern, $normalized)) {
-                return true;
-            }
-        }
-        return false;
-    }
-    function logBlockedAttempt($text, $userId = 'anonim') {
-        $log = date('Y-m-d H:i:s') . " | User: $userId | Text: $text\n";
-        file_put_contents('blocked_attempts.log', $log, FILE_APPEND);
-    }
-    // Kontrollo të gjitha fushat tekstuale për fjalë të ndaluara
-    $fieldsToCheck = [$emri, $mesazhi];
-    $hasBanWord = false;
-    foreach ($fieldsToCheck as $field) {
-        if (containsBanWord($field, $banWords)) {
-            $hasBanWord = true;
-            break;
-        }
-    }
-    if ($hasBanWord) {
-        logBlockedAttempt($emri . ' | ' . $mesazhi, $_SESSION['user_id'] ?? 'anonim');
-        $aplikim_error = '❌ Përmbajtja përmban fjalë të papërshtatshme. Ju lutemi rishikoni tekstin.';
-    } elseif ($konkurs_id && $emri && $email && $telefoni && $mesazhi) {
-        $stmt = $pdo->prepare('INSERT INTO aplikimet_konkurs (konkurs_id, user_id, emri, email, telefoni, mesazhi) VALUES (?, ?, ?, ?, ?, ?)');
-        if ($stmt->execute([$konkurs_id, $user_id, $emri, $email, $telefoni, $mesazhi])) {
-            $aplikim_sukses = true;
-        } else {
-            $aplikim_error = 'Gabim gjatë aplikimit!';
-        }
-    } else {
-        $aplikim_error = 'Ju lutemi plotësoni të gjitha fushat!';
-    }
-}
-
-// Ruaj konkursin nëse është dërguar forma
-if ($roli === 'zyra' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['posto_konkurs'])) {
-    $pozita = trim($_POST['pozita'] ?? '');
-    $pershkrimi = trim($_POST['pershkrimi'] ?? '');
-    $afati = $_POST['afati'] ?? '';
-    if ($pozita && $pershkrimi && $afati) {
-        $stmt = $pdo->prepare('INSERT INTO konkurset (zyra_id, pozita, pershkrimi, afati) VALUES (?, ?, ?, ?)');
-        if ($stmt->execute([$zyra_id, $pozita, $pershkrimi, $afati])) {
-            $success = 'Konkursi u postua me sukses!';
-        } else {
-            $error = 'Gabim gjatë postimit të konkursit!';
-        }
-    } else {
-        $error = 'Ju lutemi plotësoni të gjitha fushat!';
-    }
-}
-
-?><!DOCTYPE html>
-<html lang="sq">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Paneli i Zyrës Noteriale | Shpallje Pune</title>
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Montserrat', Arial, sans-serif;
-            background: linear-gradient(120deg, #e2eafc 0%, #f8fafc 100%);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 700px;
-            margin: 48px auto 0 auto;
-            padding: 36px 32px;
-            border-radius: 22px;
-            background: #fff;
-            box-shadow: 0 8px 32px rgba(44,108,223,0.13);
-        }
-        h1 {
-            color: #2d6cdf;
-            margin-bottom: 32px;
-            font-size: 2.2rem;
-            font-weight: 800;
-            text-align: center;
-            letter-spacing: 1px;
-        }
-        .konkurs-section {
-            background: #f8fafc;
-            border-radius: 18px;
-            padding: 32px 28px;
-            margin-bottom: 36px;
-            box-shadow: 0 4px 24px rgba(44,108,223,0.10);
-            animation: fadeInUp 0.7s cubic-bezier(.39,.575,.56,1) both;
-        }
-        .konkurs-section h2 {
-            color: #184fa3;
-            margin-bottom: 22px;
-            font-size: 1.5rem;
-            font-weight: 800;
-        }
-        .form-group {
-            margin-bottom: 22px;
-        }
-        label {
-            display: block;
-            margin-bottom: 10px;
-            color: #2d6cdf;
-            font-weight: 700;
-            font-size: 1.08rem;
-        }
-        input[type="text"], input[type="date"], textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1.5px solid #e2eafc;
-            border-radius: 10px;
-            font-size: 1.08rem;
-            background: #f8fafc;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        input:focus, textarea:focus {
-            border-color: #2d6cdf;
-            outline: none;
-            box-shadow: 0 0 0 2px #e2eafc;
-        }
-        button {
-            background: linear-gradient(90deg, #2d6cdf 60%, #184fa3 100%);
-            color: white;
-            padding: 14px 0;
-            border: none;
-            border-radius: 50px;
-            width: 100%;
-            font-size: 1.15rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-            margin-top: 10px;
-            box-shadow: 0 4px 16px rgba(44,108,223,0.10);
-        }
-        button:hover {
-            background: #184fa3;
-            transform: translateY(-2px) scale(1.01);
-        }
-        .success {
-            color: #388e3c;
-            background: #eafaf1;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 22px;
-            font-size: 1.08rem;
-            text-align: center;
-            border-left: 5px solid #388e3c;
-        }
-        .error {
-            color: #d32f2f;
-            background: #ffeaea;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 22px;
-            font-size: 1.08rem;
-            text-align: center;
-            border-left: 5px solid #d32f2f;
-        }
-        .konkurset-list {
-            margin-top: 24px;
-        }
-        .konkurs-item {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(44,108,223,0.07);
-            padding: 18px 20px;
-            margin-bottom: 18px;
-            border-left: 6px solid #2d6cdf;
-        }
-        .konkurs-item h3 {
-            margin: 0 0 8px 0;
-            color: #184fa3;
-            font-size: 1.18rem;
-            font-weight: 700;
-        }
-        .konkurs-item .afati {
-            color: #2d6cdf;
-            font-size: 0.98rem;
-            font-weight: 600;
-        }
-        .konkurs-item .pershkrimi {
-            color: #333;
-            font-size: 1.04rem;
-            margin: 8px 0 0 0;
-        }
-        @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(40px); }
-            100% { opacity: 1; transform: none; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1><i class="fas fa-bullhorn"></i> Shpallje Pune nga Zyra Noteriale</h1>
-        <?php if ($roli === 'zyra'): ?>
-        <div class="konkurs-section">
-            <h2><i class="fas fa-plus-circle"></i> Posto Konkurs të Ri</h2>
-            <?php if ($success): ?><div class="success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
-            <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-            <form method="POST">
-                <div class="form-group">
-                    <label for="pozita">Pozita e Punës</label>
-                    <input type="text" name="pozita" id="pozita" required placeholder="P.sh. Asistent Noterial, Sekretar...">
-                </div>
-                <div class="form-group">
-                    <label for="pershkrimi">Përshkrimi i Detyrave</label>
-                    <textarea name="pershkrimi" id="pershkrimi" rows="4" required placeholder="Përshkruani detyrat dhe kërkesat për këtë pozitë..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="afati">Afati i Aplikimit</label>
-                    <input type="date" name="afati" id="afati" required>
-                </div>
-                <button type="submit" name="posto_konkurs"><i class="fas fa-paper-plane"></i> Posto Konkursin</button>
-            </form>
-        </div>
-        <?php endif; ?>
-        <div class="konkurset-list">
-            <h2><i class="fas fa-list"></i> Konkursët e Shpallur</h2>
-            <?php
-            $stmt = $pdo->query('SELECT k.id, k.pozita, k.pershkrimi, k.afati, k.created_at, z.emri AS zyra_emri FROM konkurset k JOIN zyrat z ON k.zyra_id = z.id ORDER BY k.created_at DESC');
-            if ($stmt->rowCount() > 0) {
-                while ($row = $stmt->fetch()) {
-                    echo '<div class="konkurs-item">';
-                    echo '<h3>' . htmlspecialchars($row['pozita']) . ' <span style="font-size:0.95em;font-weight:400;color:#184fa3;">(' . htmlspecialchars($row['zyra_emri']) . ')</span></h3>';
-                    echo '<div class="afati"><i class="fas fa-calendar-alt"></i> Afati i aplikimit: ' . htmlspecialchars($row['afati']) . '</div>';
-                    echo '<div class="pershkrimi">' . nl2br(htmlspecialchars($row['pershkrimi'])) . '</div>';
-                    echo '<div style="font-size:0.92em;color:#888;margin-top:6px;">Publikuar më: ' . htmlspecialchars($row['created_at']) . '</div>';
-                    if ($roli !== 'zyra' && $roli !== 'admin') {
-                        echo '<div class="apliko-section" style="margin-top:18px;">';
-                        if (isset($aplikim_sukses) && $aplikim_sukses && isset($_POST['konkurs_id']) && $_POST['konkurs_id'] == $row['id']) {
-                            echo '<div class="success">Aplikimi u dërgua me sukses!</div>';
-                        } elseif (isset($aplikim_error) && isset($_POST['konkurs_id']) && $_POST['konkurs_id'] == $row['id']) {
-                            echo '<div class="error">' . htmlspecialchars($aplikim_error) . '</div>';
-                        }
-                        echo '<form method="POST" class="apliko-form" enctype="multipart/form-data" style="background:#f8fafc;padding:18px 16px;border-radius:12px;box-shadow:0 2px 8px rgba(44,108,223,0.07);">';
-                        echo '<input type="hidden" name="konkurs_id" value="' . $row['id'] . '">';
-                        echo '<div class="form-group"><label>Emri</label><input type="text" name="emri" required pattern="[A-Za-zÇçËë\s]{2,}" placeholder="Emri"></div>';
-                        echo '<div class="form-group"><label>Mbiemri</label><input type="text" name="mbiemri" required pattern="[A-Za-zÇçËë\s]{2,}" placeholder="Mbiemri"></div>';
-                        echo '<div class="form-group"><label>Email</label><input type="email" name="email" required placeholder="Email-i juaj"></div>';
-                        echo '<div class="form-group"><label>Telefoni</label><input type="text" name="telefoni" required pattern="\+383[1-9]\d{7}" placeholder="p.sh. +38344123456"></div>';
-                        echo '<div class="form-group"><label>Data e lindjes</label><input type="date" name="datelindja" required></div>';
-                        echo '<div class="form-group"><label>Adresa</label><input type="text" name="adresa" required placeholder="Adresa e plotë"></div>';
-                        echo '<div class="form-group"><label>Arsimi</label><input type="text" name="arsimi" required placeholder="P.sh. Bachelor në Drejtësi"></div>';
-                        echo '<div class="form-group"><label>Përvoja e punës</label><input type="text" name="pervoja" required placeholder="P.sh. 2 vite si asistent noterial"></div>';
-                        echo '<div class="form-group"><label>CV (PDF)</label><input type="file" name="cv" accept="application/pdf" required></div>';
-                        echo '<div class="form-group"><label>Letër motivimi</label><textarea name="mesazhi" rows="4" required placeholder="Pse po aplikoni për këtë pozitë? Përshkruani motivimin tuaj..."></textarea></div>';
-                        echo '<button type="submit" name="apliko_konkurs" style="background:#2d6cdf;color:#fff;padding:12px 0;width:100%;border:none;border-radius:8px;font-size:1.1rem;font-weight:700;box-shadow:0 2px 8px rgba(44,108,223,0.08);transition:background 0.2s;"><i class="fas fa-paper-plane"></i> Apliko</button>';
-                        echo '</form>';
-                        echo '</div>';
-                    }
-                    echo '</div>';
-                }
-            } else {
-                echo '<div class="error">Nuk ka asnjë konkurs të shpallur.</div>';
-            }
-            ?>
-        </div>
-
-    </div>
-</body>
-</html>
-<?php
 // filepath: c:\xampp\htdocs\noteria\dashboard.php
 // Konfigurimi i raportimit të gabimeve
 ini_set('display_errors', 0); // Mos shfaq gabime në faqe
@@ -355,6 +14,9 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once 'confidb.php';
+if (!isset($pdo) || !$pdo) {
+    die("<div style='color:red;text-align:center;margin-top:30px;'>Gabim në lidhjen me databazën. Ju lutemi kontaktoni administratorin.</div>");
+}
 
 // Merr të dhënat e përdoruesit, përfshirë rolin dhe zyra_id
 $user_id = $_SESSION['user_id'];
@@ -362,9 +24,12 @@ $stmt = $pdo->prepare("SELECT roli, zyra_id FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
-$roli = $user['roli'];
+$roli = isset($user['roli']) ? $user['roli'] : null;
 $zyra_id = $user['zyra_id'];
 
+// Shto këtë për të shmangur warning për variablat e papërcaktuara
+if (!isset($success)) $success = null;
+if (!isset($error)) $error = null;
 // Lidh automatikisht me zyrën e parë nëse nuk ka zyra_id
 if (empty($zyra_id)) {
     $stmt = $pdo->query("SELECT id FROM zyrat ORDER BY id ASC LIMIT 1");
@@ -374,7 +39,7 @@ if (empty($zyra_id)) {
         // Përditëso përdoruesin në databazë
         $stmt = $pdo->prepare("UPDATE users SET zyra_id = ? WHERE id = ?");
         $stmt->execute([$zyra_id, $user_id]);
-    }
+}
 }
 
 // Genero një CSRF token nëse nuk ekziston
@@ -393,9 +58,6 @@ $sherbimet = [
 
 $zyrat = $pdo->query("SELECT id, emri FROM zyrat")->fetchAll();
 
-$success = null;
-$error = null;
-
 // Rezervimi i terminit
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_notary'])) {
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
@@ -407,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_notary'])) {
         $zyra_id_selected = $_POST['zyra_id'] ?? '';
         $document_path = null;
 
-        // Validimi bazik
+        // Validimi i avancuar
         if (empty($service) || empty($date) || empty($time) || empty($zyra_id_selected)) {
             $error = "Ju lutemi plotësoni të gjitha fushat!";
         } elseif ($time > '16:00') {
@@ -416,21 +78,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_notary'])) {
             $weekday = date('N', strtotime($date));
             if ($weekday == 6 || $weekday == 7) {
                 $error = "Zyrat noteriale nuk punojnë të Shtunën dhe të Dielën!";
-            } else {
-                // Kontrollo nëse termini është i lirë
                 $stmt = $pdo->prepare("SELECT id FROM reservations WHERE zyra_id = ? AND date = ? AND time = ?");
                 $stmt->execute([$zyra_id_selected, $date, $time]);
-                if ($stmt->fetch()) {
-                    $error = "Ky orar është i zënë për këtë zyrë. Ju lutemi zgjidhni një orar tjetër!";
+                if ($stmt->rowCount() > 0) {
+                    $error = "Ky orar është i zënë për këtë zyrë!";
                 } else {
                     // Ruaj dokumentin nëse është ngarkuar
                     if (isset($_FILES['document']) && $_FILES['document']['error'] === UPLOAD_ERR_OK) {
-                        $target_dir = __DIR__ . "/uploads/";
-                        if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
-                        $filename = uniqid() . "_" . basename($_FILES["document"]["name"]);
-                        $target_file = $target_dir . $filename;
-                        if (move_uploaded_file($_FILES["document"]["tmp_name"], $target_file)) {
-                            $document_path = "uploads/" . $filename;
+                        $allowed_types = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+                        $file_type = mime_content_type($_FILES["document"]["tmp_name"]);
+                        $file_size = $_FILES["document"]["size"];
+                        if (!in_array($file_type, $allowed_types)) {
+                            $error = "Formati i dokumentit nuk lejohet! Lejohen vetëm PDF, JPG, JPEG, PNG.";
+                        } elseif ($file_size > 5 * 1024 * 1024) { // 5MB limit
+                            $error = "Dokumenti është shumë i madh. Maksimumi lejohet 5MB.";
+                        } else {
+                            $target_dir = __DIR__ . "/uploads/";
+                            if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
+                            $filename = uniqid() . "_" . basename($_FILES["document"]["name"]);
+                            $target_file = $target_dir . $filename;
+                            if (move_uploaded_file($_FILES["document"]["tmp_name"], $target_file)) {
+                                $document_path = "uploads/" . $filename;
+                            }
                         }
                     }
                     try {
@@ -474,6 +143,56 @@ function get_terminet_zyres($pdo, $zyra_id) {
         ORDER BY r.date DESC, r.time DESC");
     $stmt->execute([$zyra_id]);
     return $stmt->fetchAll();
+}
+
+// Merr terminet e rezervuara në zyrën tuaj për përdoruesin e zakonshëm
+if ($roli !== 'admin') {
+    $stmt = $pdo->prepare("SELECT r.service, r.date, r.time, u.emri, u.mbiemri, u.email, r.document_path, r.status
+        FROM reservations r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.user_id = ?
+        ORDER BY r.date DESC, r.time DESC");
+    $stmt->execute([$user_id]);
+    $user_terminet = $stmt->fetchAll();
+}
+
+// Merr njoftimet për përdoruesin e lidhur
+$stmtNotif = $pdo->prepare("SELECT id, message, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
+$stmtNotif->execute([$user_id]);
+$notifications = $stmtNotif->fetchAll();
+
+// Merr terminet për kalendarin (për përdoruesin ose për të gjithë nëse është admin)
+if ($roli === 'admin') {
+    $stmt = $pdo->query("SELECT r.id, r.service, r.date, r.time, u.emri, u.mbiemri FROM reservations r JOIN users u ON r.user_id = u.id");
+    $calendar_terminet = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $stmt = $pdo->prepare("SELECT r.id, r.service, r.date, r.time FROM reservations r WHERE r.user_id = ?");
+    $stmt->execute([$user_id]);
+    $calendar_terminet = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Merr id e noterit të zyrës (për shembull, admini i zyrës)
+$stmt = $pdo->prepare("SELECT id FROM users WHERE zyra_id = ? AND roli = 'admin' LIMIT 1");
+$stmt->execute([$zyra_id]);
+$noter_id = $stmt->fetchColumn();
+
+// Ruaj mesazhin nëse është dërguar
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message']) && !empty($_POST['message'])) {
+    $msg = trim($_POST['message']);
+    if ($noter_id && $msg) {
+        $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
+        $stmt->execute([$user_id, $noter_id, $msg]);
+    }
+}
+
+// Merr mesazhet mes përdoruesit dhe noterit
+$messages = [];
+if ($noter_id) {
+    $stmt = $pdo->prepare("SELECT m.*, u.emri, u.mbiemri FROM messages m JOIN users u ON m.sender_id = u.id WHERE 
+        (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?) 
+        ORDER BY m.created_at ASC");
+    $stmt->execute([$user_id, $noter_id, $noter_id, $user_id]);
+    $messages = $stmt->fetchAll();
 }
 ?>
 <!DOCTYPE html>
@@ -640,146 +359,182 @@ function get_terminet_zyres($pdo, $zyra_id) {
             .admin-section, .zyra-section { padding: 10px; }
             table, th, td { font-size: 0.95rem; }
         }
+
+        /* Stilet për seksionin e reklamave */
+        .ads-section {
+            background: linear-gradient(90deg,#e2eafc 0%,#f8fafc 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(44,108,223,0.07);
+            padding: 28px 18px 18px 18px;
+            margin-bottom: 36px;
+            margin-top: 10px;
+        }
+        .ads-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #2d6cdf;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+        }
+        .ads-cards {
+            display: flex;
+            gap: 22px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .ad-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(44,108,223,0.06);
+            overflow: hidden;
+            width: 300px;
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 12px;
+            transition: transform 0.18s;
+        }
+        .ad-card:hover {
+            transform: translateY(-6px) scale(1.03);
+            box-shadow: 0 8px 24px rgba(44,108,223,0.13);
+        }
+        .ad-img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        .ad-content {
+            padding: 16px 14px 18px 14px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .ad-content h4 {
+            margin: 0 0 8px 0;
+            color: #184fa3;
+            font-size: 1.08rem;
+            font-weight: 700;
+        }
+        .ad-content p {
+            margin: 0 0 12px 0;
+            color: #444;
+            font-size: 0.98rem;
+        }
+        .ad-btn {
+            background: #2d6cdf;
+            color: #fff;
+            border-radius: 7px;
+            padding: 8px 18px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            text-align: center;
+            transition: background 0.18s;
+            display: inline-block;
+        }
+        .ad-btn:hover {
+            background: #184fa3;
+        }
+        @media (max-width: 900px) {
+            .ads-cards { flex-direction: column; gap: 18px; align-items: center; }
+            .ad-card { width: 98%; min-width: 0; }
+        }
+
+        /* Stilet për seksionin e reklamave në anën e djathtë */
+        .ads-sidebar {
+            position: fixed;
+            top: 40px;
+            right: 32px;
+            width: 340px;
+            z-index: 100;
+            background: linear-gradient(90deg,#e2eafc 0%,#f8fafc 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(44,108,223,0.13);
+            padding: 22px 14px 14px 14px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .ads-sidebar .ads-title {
+            font-size: 1.18rem;
+            font-weight: 700;
+            color: #2d6cdf;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+        }
+        .ads-sidebar .ads-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .ads-sidebar .ad-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(44,108,223,0.06);
+            overflow: hidden;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 0;
+            transition: transform 0.18s;
+        }
+        .ads-sidebar .ad-card:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 24px rgba(44,108,223,0.13);
+        }
+        .ads-sidebar .ad-img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+        }
+        .ads-sidebar .ad-content {
+            padding: 12px 10px 14px 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .ads-sidebar .ad-content h4 {
+            margin: 0 0 6px 0;
+            color: #184fa3;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .ads-sidebar .ad-content p {
+            margin: 0 0 8px 0;
+            color: #444;
+            font-size: 0.95rem;
+        }
+        .ads-sidebar .ad-btn {
+            background: #2d6cdf;
+            color: #fff;
+            border-radius: 7px;
+            padding: 7px 14px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.98rem;
+            text-align: center;
+            transition: background 0.18s;
+            display: inline-block;
+        }
+        .ads-sidebar .ad-btn:hover {
+            background: #184fa3;
+        }
+        @media (max-width: 1200px) {
+            .ads-sidebar { display: none; }
+        }
     </style>
+    <!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>Mirë se erdhët në Panelin e Kontrollit</h1>
-        <?php if ($roli === 'admin'): ?>
-            <div class="admin-section">
-                <h2>Menaxhimi i Zyrave Noteriale</h2>
-                <?php
-                echo "<h3>Lista e Zyrave:</h3><ul>";
-                foreach ($zyrat as $zyra) {
-                    echo "<li><strong>ID:</strong> " . htmlspecialchars($zyra['id']) . " - <strong>Emri:</strong> " . htmlspecialchars($zyra['emri']) . "</li>";
-                }
-                echo "</ul>";
-
-                // Lista e përdoruesve sipas zyrave
-                $stmt = $pdo->query("SELECT z.id, z.emri AS zyra_emri, u.emri, u.mbiemri, u.email FROM zyrat z LEFT JOIN users u ON u.zyra_id = z.id ORDER BY z.id");
-                $current_zyra = null;
-                while ($row = $stmt->fetch()) {
-                    if ($current_zyra !== $row['zyra_emri']) {
-                        if ($current_zyra !== null) echo "</ul>";
-                        echo "<h3>Zyra: " . htmlspecialchars($row['zyra_emri']) . "</h3><ul>";
-                        $current_zyra = $row['zyra_emri'];
-                    }
-                    if ($row['emri']) {
-                        echo "<li>" . htmlspecialchars($row['emri']) . " " . htmlspecialchars($row['mbiemri']) . " - " . htmlspecialchars($row['email']) . "</li>";
-                    }
-                }
-                if ($current_zyra !== null) echo "</ul>";
-                ?>
-            </div>
-            <div class="admin-section">
-                <h2>Terminet dhe Dokumentet për çdo Zyrë</h2>
-                <?php
-                foreach ($zyrat as $zyra) {
-                    echo "<h3 style='margin-top:24px;'>Terminet për zyrën: " . htmlspecialchars($zyra['emri']) . "</h3>";
-                    $stmt = $pdo->prepare("SELECT r.service, r.date, r.time, u.emri, u.mbiemri, u.email, r.document_path
-                        FROM reservations r
-                        JOIN users u ON r.user_id = u.id
-                        WHERE r.zyra_id = ?
-                        ORDER BY r.date DESC, r.time DESC");
-                    $stmt->execute([$zyra['id']]);
-                    if ($stmt->rowCount() > 0) {
-                        echo "<table>";
-                        echo "<tr>
-                                <th>Shërbimi</th>
-                                <th>Data</th>
-                                <th>Ora</th>
-                                <th>Pala</th>
-                                <th>Email</th>
-                                <th>Dokumenti</th>
-                              </tr>";
-                        while ($row = $stmt->fetch()) {
-                            echo "<tr>
-                                    <td>" . htmlspecialchars($row['service']) . "</td>
-                                    <td>" . htmlspecialchars($row['date']) . "</td>
-                                    <td>" . htmlspecialchars($row['time']) . "</td>
-                                    <td>" . htmlspecialchars($row['emri']) . " " . htmlspecialchars($row['mbiemri']) . "</td>
-                                    <td>" . htmlspecialchars($row['email']) . "</td>
-                                    <td>";
-                            if (!empty($row['document_path'])) {
-                                echo "<a href='" . htmlspecialchars($row['document_path']) . "' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shiko dokumentin</a>";
-                            } else {
-                                echo "<span style='color:#888;'>Nuk ka dokument</span>";
-                            }
-                            echo "</td></tr>";
-                        }
-                        echo "</table>";
-                    } else {
-                        echo "<div class='no-data'>Nuk ka asnjë termin të rezervuar në këtë zyrë.</div>";
-                    }
-                }
-                ?>
-            </div>
-            <div class="admin-section">
-                <h2>Faturat Fiskale për të gjitha zyrat</h2>
-                <?php
-                foreach ($zyrat as $zyra) {
-                    echo "<h3 style='margin-top:24px;'>Faturat për zyrën: " . htmlspecialchars($zyra['emri']) . "</h3>";
-                    $terminet = get_terminet_zyres($pdo, $zyra['id']);
-                    if (count($terminet) > 0) {
-                        foreach ($terminet as $termin) {
-                            echo "<div style='margin-bottom:12px; padding:10px; background:#f8fafc; border-radius:8px;'>";
-                            echo "<strong>Lënda:</strong> " . htmlspecialchars($termin['service']) . " | <strong>Data:</strong> " . htmlspecialchars($termin['date']) . " | <strong>Ora:</strong> " . htmlspecialchars($termin['time']);
-                            // Forma për faturë fiskale
-                            echo '<form method="POST" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-                                <input type="hidden" name="reservation_id" value="' . $termin['id'] . '">
-                                <input type="hidden" name="zyra_id" value="' . $zyra['id'] . '">
-                                <input type="text" name="nr_fatures" placeholder="Nr. Faturës" required style="width:110px;">
-                                <input type="date" name="data_fatures" required>
-                                <input type="number" step="0.01" name="shuma" placeholder="Shuma (€)" required style="width:90px;">
-                                <input type="text" name="pershkrimi" placeholder="Përshkrimi" style="width:140px;">
-                                <button type="submit" name="shto_fature" style="background:#388e3c;color:#fff;padding:6px 16px;border-radius:6px;">Ruaj Faturën</button>
-                            </form>';
-                            // Shfaq faturat ekzistuese për këtë lëndë
-                            $stmtF = $pdo->prepare("SELECT * FROM fatura WHERE reservation_id = ?");
-                            $stmtF->execute([$termin['id']]);
-                            while ($f = $stmtF->fetch()) {
-                                $pdf_url = "fatura_pdf.php?fatura_id=" . $f['id'];
-                                echo "<div style='margin-top:4px; color:#184fa3; font-size:0.97em;'>";
-                                echo "Fatura: <b>" . htmlspecialchars($f['nr_fatures']) . "</b> | Data: " . htmlspecialchars($f['data_fatures']) . " | Shuma: <b>" . htmlspecialchars($f['shuma']) . "€</b> | ";
-                                echo "<a href='$pdf_url' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shkarko Faturën (PDF)</a>";
-                                echo "</div>";
-                            }
-                            echo "</div>";
-                        }
-                    } else {
-                        echo "<div class='no-data'>Nuk ka asnjë termin të rezervuar në këtë zyrë.</div>";
-                    }
-                }
-                ?>
-            </div>
-        <?php else: ?>
-            <?php if ($roli === 'zyra'): ?>
-            <div class="zyra-section">
-                <h2><i class="fas fa-euro-sign"></i> Pagesat e reja online</h2>
-                <?php
-                // Shfaq pagesat e fundit të bëra për këtë zyrë (nga paysera_gateway.php)
-                $stmt = $pdo->prepare("SELECT p.id, p.user_id, p.service, p.date, p.time, p.amount, p.transaction_id, u.emri, u.mbiemri, u.email, p.created_at FROM payments p JOIN users u ON p.user_id = u.id WHERE p.zyra_id = ? ORDER BY p.created_at DESC LIMIT 10");
-                $stmt->execute([$zyra_id]);
-                if ($stmt->rowCount() > 0) {
-                    echo '<table><tr><th>Paguesi</th><th>Shërbimi</th><th>Data</th><th>Ora</th><th>Shuma</th><th>ID Transaksionit</th><th>Koha</th></tr>';
-                    while ($row = $stmt->fetch()) {
-                        echo '<tr>';
-                        echo '<td>' . htmlspecialchars($row['emri'] . ' ' . $row['mbiemri']) . '<br><span style="font-size:0.95em;color:#888;">' . htmlspecialchars($row['email']) . '</span></td>';
-                        echo '<td>' . htmlspecialchars($row['service']) . '</td>';
-                        echo '<td>' . htmlspecialchars($row['date']) . '</td>';
-                        echo '<td>' . htmlspecialchars($row['time']) . '</td>';
-                        echo '<td>' . number_format($row['amount'],2) . ' €</td>';
-                        echo '<td style="font-size:0.97em;">' . htmlspecialchars($row['transaction_id']) . '</td>';
-                        echo '<td style="font-size:0.97em;">' . htmlspecialchars($row['created_at']) . '</td>';
-                        echo '</tr>';
-                    }
-                    echo '</table>';
-                } else {
-                    echo '<div class="no-data">Nuk ka pagesa të reja online për zyrën tuaj.</div>';
-                }
-                ?>
-            </div>
-            <?php endif; ?>
+        <?php if ($roli !== 'admin'): ?>
             <div class="zyra-section">
                 <h2>Informacioni i Zyrës Suaj</h2>
                 <?php
@@ -790,7 +545,20 @@ function get_terminet_zyres($pdo, $zyra_id) {
                     $stmt->execute([$zyra_id]);
                     $zyra = $stmt->fetch();
                     if ($zyra) {
+                        // Merr vendndodhjen (qyteti dhe shteti)
+                        $stmtLoc = $pdo->prepare("SELECT qyteti, shteti FROM zyrat WHERE id = ?");
+                        $stmtLoc->execute([$zyra_id]);
+                        $vendndodhja = $stmtLoc->fetch();
+                        $qyteti = $vendndodhja['qyteti'] ?? '';
+                        $shteti = $vendndodhja['shteti'] ?? '';
+
                         echo "<p><strong>Zyra:</strong> " . htmlspecialchars($zyra['emri']) . "</p>";
+                        echo "<p><strong>Vendndodhja:</strong> ";
+                        if ($qyteti) {
+                            echo htmlspecialchars($qyteti) . ", ";
+                        }
+                        echo htmlspecialchars($shteti) . "</p>";
+
                         $stmt = $pdo->prepare("SELECT emri, mbiemri, email FROM users WHERE zyra_id = ?");
                         $stmt->execute([$zyra_id]);
                         echo "<ul>";
@@ -799,18 +567,42 @@ function get_terminet_zyres($pdo, $zyra_id) {
                         }
                         echo "</ul>";
 
-                        echo "<h3 style='margin-top:32px;'>Terminet e mia të rezervuara</h3>";
-                        $stmt = $pdo->prepare("SELECT service, date, time FROM reservations WHERE user_id = ?");
-                        $stmt->execute([$user_id]);
+                        echo "<h3 style='margin-top:32px;'>Terminet e rezervuara në zyrën tuaj</h3>";
+                        $stmt = $pdo->prepare("SELECT r.service, r.date, r.time, u.emri, u.mbiemri, u.email, r.document_path
+    FROM reservations r
+    JOIN users u ON r.user_id = u.id
+    WHERE r.zyra_id = ?
+    ORDER BY r.date DESC, r.time DESC");
+                        $stmt->execute([$zyra_id]);
                         if ($stmt->rowCount() > 0) {
                             echo "<table>";
-                            echo "<tr><th>Shërbimi</th><th>Data</th><th>Ora</th></tr>";
+                            echo "<tr>
+                                    <th>Shërbimi</th>
+                                    <th>Data</th>
+                                    <th>Ora</th>
+                                    <th>Përdoruesi</th>
+                                    <th>Email</th>
+                                    <th>Dokumenti</th>
+                                  </tr>";
                             while ($row = $stmt->fetch()) {
-                                echo "<tr><td>" . htmlspecialchars($row['service']) . "</td><td>" . htmlspecialchars($row['date']) . "</td><td>" . htmlspecialchars($row['time']) . "</td></tr>";
+                                echo "<tr>
+            <td>" . htmlspecialchars($row['service']) . "</td>
+            <td>" . htmlspecialchars($row['date']) . "</td>
+            <td>" . htmlspecialchars($row['time']) . "</td>
+            <td>" . htmlspecialchars($row['emri']) . " " . htmlspecialchars($row['mbiemri']) . "</td>
+            <td>" . htmlspecialchars($row['email']) . "</td>
+            <td>";
+                                if (!empty($row['document_path'])) {
+                                    echo "<a href='" . htmlspecialchars($row['document_path']) . "' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shiko dokumentin</a>";
+                                } else {
+                                    echo "<span style='color:#888;'>Nuk ka dokument</span>";
+                                }
+                                echo "</td>
+        </tr>";
                             }
                             echo "</table>";
                         } else {
-                            echo "<div class='no-data'>Nuk keni asnjë termin të rezervuar.</div>";
+                            echo "<div class='no-data'>Nuk ka asnjë termin të rezervuar në këtë zyrë.</div>";
                         }
                     } else {
                         echo "<div class='error'><strong>Zyra nuk u gjet! Kontaktoni administratorin.</strong></div>";
@@ -872,11 +664,451 @@ function get_terminet_zyres($pdo, $zyra_id) {
                     </form>
                 <?php endif; ?>
             </div>
+            <div class="zyra-section">
+                <h2>Terminet e mia të rezervuara</h2>
+                <?php
+                if (!empty($user_terminet)) {
+                    echo "<table>";
+                    echo "<tr>
+                            <th>Shërbimi</th>
+                            <th>Data</th>
+                            <th>Ora</th>
+                            <th>Statusi</th>
+                            <th>Dokumenti</th>
+                          </tr>";
+                    foreach ($user_terminet as $row) {
+                        echo "<tr>
+                            <td>" . htmlspecialchars($row['service']) . "</td>
+                            <td>" . htmlspecialchars($row['date']) . "</td>
+                            <td>" . htmlspecialchars($row['time']) . "</td>
+                            <td>";
+                        if ($row['status'] === 'aprovohet') {
+                            echo "<span style='color:#388e3c;font-weight:600;'>Termini është aprovuar!</span>";
+                        } elseif ($row['status'] === 'refuzohet') {
+                            echo "<span style='color:#d32f2f;font-weight:600;'>Termini është refuzuar!</span>";
+                        } else {
+                            echo "<span style='color:#888;'>Në pritje të aprovimit</span>";
+                        }
+                        echo "</td>
+                            <td>";
+                        if (!empty($row['document_path'])) {
+                            echo "<a href='" . htmlspecialchars($row['document_path']) . "' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shiko dokumentin</a>";
+                        } else {
+                            echo "<span style='color:#888;'>Nuk ka dokument</span>";
+                        }
+                        echo "</td>
+                        </tr>";
+                    }
+                    echo "</table>";
+                } else {
+                    echo "<div class='no-data'>Nuk keni asnjë termin të rezervuar.</div>";
+                }
+                ?>
+            </div>
+        <?php else: ?>
+            <div class="admin-section">
+                <h2>Menaxhimi i Zyrave Noteriale</h2>
+                <?php
+                echo "<h3>Lista e Zyrave:</h3><ul>";
+                foreach ($zyrat as $zyra) {
+                    // Merr vendndodhjen për secilën zyrë
+                    $stmtLoc = $pdo->prepare("SELECT qyteti, shteti FROM zyrat WHERE id = ?");
+                    $stmtLoc->execute([$zyra['id']]);
+                    $vendndodhja = $stmtLoc->fetch();
+                    $qyteti = $vendndodhja['qyteti'] ?? '';
+                    $shteti = $vendndodhja['shteti'] ?? '';
+                    echo "<li><strong>ID:</strong> " . htmlspecialchars($zyra['id']) . " - <strong>Emri:</strong> " . htmlspecialchars($zyra['emri']) . " <span style='color:#184fa3;font-size:0.97em;'>(";
+                    if ($qyteti) echo htmlspecialchars($qyteti) . ", ";
+                    echo htmlspecialchars($shteti) . ")</span></li>";
+                }
+                echo "</ul>";
+
+                // Lista e përdoruesve sipas zyrave
+                $stmt = $pdo->query("SELECT z.id, z.emri AS zyra_emri, z.qyteti, z.shteti, u.emri, u.mbiemri, u.email FROM zyrat z LEFT JOIN users u ON u.zyra_id = z.id ORDER BY z.id");
+                $current_zyra = null;
+                while ($row = $stmt->fetch()) {
+                    if ($current_zyra !== $row['zyra_emri']) {
+                        if ($current_zyra !== null) echo "</ul>";
+                        echo "<h3>Zyra: " . htmlspecialchars($row['zyra_emri']) . " <span style='color:#184fa3;font-size:0.97em;'>(";
+                        if ($row['qyteti']) echo htmlspecialchars($row['qyteti']) . ", ";
+                        echo htmlspecialchars($shteti) . ")</span></h3><ul>";
+                        $current_zyra = $row['zyra_emri'];
+                    }
+                    if ($row['emri']) {
+                        echo "<li>" . htmlspecialchars($row['emri'] . " " . $row['mbiemri']) . " - " . htmlspecialchars($row['email']) . "</li>";
+                    }
+                }
+                if ($current_zyra !== null) echo "</ul>";
+                ?>
+            </div>
+            <div class="admin-section">
+                <h2>Terminet dhe Dokumentet për çdo Zyrë</h2>
+                <?php
+                foreach ($zyrat as $zyra) {
+                    // Merr vendndodhjen për secilën zyrë
+                    $stmtLoc = $pdo->prepare("SELECT qyteti, shteti FROM zyrat WHERE id = ?");
+                    $stmtLoc->execute([$zyra['id']]);
+                    $vendndodhja = $stmtLoc->fetch();
+                    $qyteti = $vendndodhja['qyteti'] ?? '';
+                    $shteti = $vendndodhja['shteti'] ?? '';
+
+                    echo "<h3 style='margin-top:24px;'>Terminet për zyrën: " . htmlspecialchars($zyra['emri']) . " <span style='color:#184fa3;font-size:0.97em;'>(";
+                    if ($qyteti) echo htmlspecialchars($qyteti) . ", ";
+                    echo htmlspecialchars($shteti) . ")</span></h3>";
+                    $stmt = $pdo->prepare("SELECT r.service, r.date, r.time, u.emri, u.mbiemri, u.email, r.document_path
+                        FROM reservations r
+                        JOIN users u ON r.user_id = u.id
+                        WHERE r.zyra_id = ?
+                        ORDER BY r.date DESC, r.time DESC");
+                    $stmt->execute([$zyra['id']]);
+                    if ($stmt->rowCount() > 0) {
+                        echo "<table>";
+                        echo "<tr>
+                                <th>Shërbimi</th>
+                                <th>Data</th>
+                                <th>Ora</th>
+                                <th>Pala</th>
+                                <th>Email</th>
+                                <th>Dokumenti</th>
+                                <th>Statusi</th>
+                              </tr>";
+                        while ($row = $stmt->fetch()) {
+                            echo "<tr>
+                                    <td>" . htmlspecialchars($row['service']) . "</td>
+                                    <td>" . htmlspecialchars($row['date']) . "</td>
+                                    <td>" . htmlspecialchars($row['time']) . "</td>
+                                    <td>" . htmlspecialchars($row['emri'] . " " . $row['mbiemri']) . "</td>
+                                    <td>" . htmlspecialchars($row['email']) . "</td>
+                                    <td>";
+                            if (!empty($row['document_path'])) {
+                                echo "<a href='" . htmlspecialchars($row['document_path']) . "' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shiko dokumentin</a>";
+                            } else {
+                                echo "<span style='color:#888;'>Nuk ka dokument</span>";
+                            }
+                            echo "</td>
+<td>";
+                            if (isset($row['status']) && $row['status'] === 'në pritje') {
+                                echo '<form method="post" style="display:inline;">
+                                    <input type="hidden" name="reservation_id" value="' . htmlspecialchars($row['id']) . '">
+                                    <button type="submit" name="approve" style="background:#388e3c;color:#fff;padding:4px 12px;border-radius:6px;">Aprovo</button>
+                                </form>
+                                <form method="post" style="display:inline;">
+                                    <input type="hidden" name="reservation_id" value="' . htmlspecialchars($row['id']) . '">
+                                    <button type="submit" name="reject" style="background:#d32f2f;color:#fff;padding:4px 12px;border-radius:6px;">Refuzo</button>
+                                </form>';
+                            } elseif (isset($row['status']) && $row['status'] === 'aprovohet') {
+                                echo '<span style="color:#388e3c;font-weight:600;">Aprovuar</span>';
+                            } elseif (isset($row['status']) && $row['status'] === 'refuzohet') {
+                                echo '<span style="color:#d32f2f;font-weight:600;">Refuzuar</span>';
+                            }
+                            echo "</td>
+                              </tr>";
+                        }
+                        echo "</table>";
+                    } else {
+                        echo "<div class='no-data'>Nuk ka asnjë termin të rezervuar në këtë zyrë.</div>";
+                    }
+                }
+                ?>
+            </div>
+            <div class="admin-section">
+                <h2>Faturat Fiskale për të gjitha zyrat</h2>
+                <?php
+                foreach ($zyrat as $zyra) {
+                    // Merr vendndodhjen për secilën zyrë
+                    $stmtLoc = $pdo->prepare("SELECT qyteti, shteti FROM zyrat WHERE id = ?");
+                    $stmtLoc->execute([$zyra['id']]);
+                    $vendndodhja = $stmtLoc->fetch();
+                    $qyteti = $vendndodhja['qyteti'] ?? '';
+                    $shteti = $vendndodhja['shteti'] ?? '';
+
+                    echo "<h3 style='margin-top:24px;'>Faturat për zyrën: " . htmlspecialchars($zyra['emri']) . " <span style='color:#184fa3;font-size:0.97em;'>(";
+                    if ($qyteti) echo htmlspecialchars($qyteti) . ", ";
+                    echo htmlspecialchars($shteti) . ")</span></h3>";
+                    $terminet = get_terminet_zyres($pdo, $zyra['id']);
+                    if (count($terminet) > 0) {
+                        foreach ($terminet as $termin) {
+                            echo "<div style='margin-bottom:12px; padding:10px; background:#f8fafc; border-radius:8px;'>";
+                            echo "<strong>Lënda:</strong> " . htmlspecialchars($termin['service']) . " | <strong>Data:</strong> " . htmlspecialchars($termin['date']) . " | <strong>Ora:</strong> " . htmlspecialchars($termin['time']);
+                            // Forma për faturë fiskale
+                            echo '<form method="POST" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                                <input type="hidden" name="reservation_id" value="' . $termin['id'] . '">
+                                <input type="hidden" name="zyra_id" value="' . $zyra['id'] . '">
+                                <input type="text" name="nr_fatures" placeholder="Nr. Faturës" required style="width:110px;">
+                                <input type="date" name="data_fatures" required>
+                                <input type="number" step="0.01" name="shuma" placeholder="Shuma (€)" required style="width:90px;">
+                                <input type="text" name="pershkrimi" placeholder="Përshkrimi" style="width:140px;">
+                                <button type="submit" name="shto_fature" style="background:#388e3c;color:#fff;padding:6px 16px;border-radius:6px;">Ruaj Faturën</button>
+                            </form>';
+                            // Shfaq faturat ekzistuese për këtë lëndë
+                            $stmtF = $pdo->prepare("SELECT * FROM fatura WHERE reservation_id = ?");
+                            $stmtF->execute([$termin['id']]);
+                            while ($f = $stmtF->fetch()) {
+                                $pdf_url = "fatura_pdf.php?fatura_id=" . $f['id'];
+                                echo "<div style='margin-top:4px; color:#184fa3; font-size:0.97em;'>";
+                                echo "Fatura: <b>" . htmlspecialchars($f['nr_fatures']) . "</b> | Data: " . htmlspecialchars($f['data_fatures']) . " | Shuma: <b>" . htmlspecialchars($f['shuma']) . "€</b> | ";
+                                echo "<a href='$pdf_url' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shkarko Faturën (PDF)</a>";
+                                echo "</div>";
+                            }
+                            echo "</div>";
+                        }
+                    } else {
+                        echo "<div class='no-data'>Nuk ka asnjë termin të rezervuar në këtë zyrë.</div>";
+                    }
+                }
+                ?>
+            </div>
+            <!-- Kalendar i Termineve për Noterët -->
+            <div class="admin-section">
+    <h2>Kalendar i Termineve</h2>
+    <div id="kalendar" style="background:#fff; border-radius:12px; box-shadow:0 2px 8px #2d6cdf22; padding:12px;"></div>
+</div>
+            <div class="admin-section">
+    <h2>Statistika të Shpejta</h2>
+    <?php
+    $total_terminet = $pdo->query("SELECT COUNT(*) FROM reservations")->fetchColumn();
+    $total_dokumente = $pdo->query("SELECT COUNT(*) FROM reservations WHERE document_path IS NOT NULL AND document_path != ''")->fetchColumn();
+    $total_pagesa = $pdo->query("SELECT COUNT(*) FROM fatura")->fetchColumn();
+    ?>
+    <ul>
+        <li><b>Terminet totale:</b> <?php echo $total_terminet; ?></li>
+        <li><b>Dokumente të ngarkuara:</b> <?php echo $total_dokumente; ?></li>
+        <li><b>Fatura të lëshuara:</b> <?php echo $total_pagesa; ?></li>
+    </ul>
+</div>
         <?php endif; ?>
+        <!-- Seksioni i njoftimeve dhe statistikave -->
+        <div class="zyra-section" id="njoftime">
+            <h2>Njoftimet e fundit</h2>
+            <?php if ($notifications): ?>
+                <ul>
+                    <?php foreach ($notifications as $notif): ?>
+                        <li style="margin-bottom:7px;<?php if(!$notif['is_read']) echo 'font-weight:bold;'; ?>">
+                            <?php echo htmlspecialchars($notif['message']); ?>
+                            <span style="color:#888;font-size:0.95em;">(<?php echo date('d.m.Y H:i', strtotime($notif['created_at'])); ?>)</span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else: ?>
+                <div class="info">Nuk ka njoftime të reja.</div>
+            <?php endif; ?>
+
+            <h2 style="margin-top:32px;">Statistika të Shpejta</h2>
+            <ul>
+                <li><b>Terminet totale:</b> <?php echo $total_terminet; ?></li>
+                <li><b>Dokumente të ngarkuara:</b> <?php echo $total_dokumente; ?></li>
+                <li><b>Fatura të lëshuara:</b> <?php echo $total_pagesa; ?></li>
+            </ul>
+        </div>
+
+        <!-- Buton për video thirrje -->
+        <button id="video-call-btn" style="background:#2d6cdf;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin-bottom:16px;cursor:pointer;">Nis Video Thirrje</button>
+        <div id="video-call-warning" style="display:none;margin-bottom:16px;background:#ffeaea;color:#d32f2f;padding:12px;border-radius:8px;font-weight:600;text-align:center;">
+            Thirrja e juaj do të inxhizohet për përdorim të brendshëm dhe qëllime ligjore.
+            <br>
+            <a id="video-call-link" href="https://meet.jit.si/noteria_<?php echo $user_id; ?>" target="_blank" style="display:inline-block;margin-top:10px;background:#388e3c;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;">Vazhdo në Video Thirrje</a>
+        </div>
         <div class="logout">
             <a href="logout.php">Shkyçu</a>
         </div>
+
+        <div class="zyra-section">
+    <h2>Profili Im</h2>
+    <?php
+    // Merr të dhënat aktuale
+    $stmt = $pdo->prepare("SELECT emri, mbiemri, email FROM users WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $userData = $stmt->fetch();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+        $emri = trim($_POST['emri']);
+        $mbiemri = trim($_POST['mbiemri']);
+        $email = trim($_POST['email']);
+        $pass = $_POST['password'];
+        if ($emri && $mbiemri && $email) {
+            $sql = "UPDATE users SET emri=?, mbiemri=?, email=?";
+            $params = [$emri, $mbiemri, $email];
+            if (!empty($pass)) {
+                $sql .= ", password=?";
+                $params[] = password_hash($pass, PASSWORD_DEFAULT);
+            }
+            $sql .= " WHERE id=?";
+            $params[] = $user_id;
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            echo "<div class='success'>Profili u përditësua me sukses!</div>";
+        }
+    }
+    ?>
+    <form method="post">
+        <label>Emri:</label>
+        <input type="text" name="emri" value="<?php echo htmlspecialchars($userData['emri']); ?>" required>
+        <label>Mbiemri:</label>
+        <input type="text" name="mbiemri" value="<?php echo htmlspecialchars($userData['mbiemri']); ?>" required>
+        <label>Email:</label>
+        <input type="email" name="email" value="<?php echo htmlspecialchars($userData['email']); ?>" required>
+        <label>Fjalëkalimi i ri (opsional):</label>
+        <input type="password" name="password" placeholder="Lëre bosh nëse nuk do ta ndryshosh">
+        <button type="submit" name="update_profile">Ruaj Ndryshimet</button>
+    </form>
+</div>
+
+    <div class="zyra-section">
+    <h2>Lajme & Informacione Ligjore</h2>
+    <?php
+    // Vetëm admini mund të shtojë lajm
+    if ($roli === 'admin' && isset($_POST['shto_lajm'])) {
+        $titulli = trim($_POST['titulli']);
+        $permbajtja = trim($_POST['permbajtja']);
+        if ($titulli && $permbajtja) {
+            $stmt = $pdo->prepare("INSERT INTO lajme (titulli, permbajtja) VALUES (?, ?)");
+            $stmt->execute([$titulli, $permbajtja]);
+            echo "<div class='success'>Lajmi u publikua!</div>";
+        }
+    }
+    if ($roli === 'admin') {
+    ?>
+    <form method="post" style="margin-bottom:18px;">
+        <input type="text" name="titulli" placeholder="Titulli i lajmit" required>
+        <textarea name="permbajtja" placeholder="Përmbajtja..." required style="width:100%;height:60px;"></textarea>
+        <button type="submit" name="shto_lajm">Publiko Lajmin</button>
+    </form>
+    <?php } ?>
+    <?php
+    $stmt = $pdo->query("SELECT * FROM lajme ORDER BY created_at DESC LIMIT 5");
+    while ($lajm = $stmt->fetch()) {
+        echo "<div style='margin-bottom:14px;'><b>" . htmlspecialchars($lajm['titulli']) . "</b> <span style='color:#888;font-size:0.95em;'>(" . date('d.m.Y', strtotime($lajm['created_at'])) . ")</span><br>";
+        echo nl2br(htmlspecialchars($lajm['permbajtja'])) . "</div>";
+    }
+    ?>
+</div>
+
+<div class="admin-section" id="mesazhe">
+    <h2>Mesazhe me Noterin</h2>
+    <?php
+    // Vetëm admini sheh këtë seksion
+    if ($roli === 'admin') {
+        // Merr klientët e fundit që kanë dërguar mesazhe
+        $stmt = $pdo->query("SELECT DISTINCT u.id, u.emri, u.mbiemri
+            FROM users u
+            JOIN messages m ON u.id = m.sender_id OR u.id = m.receiver_id
+            WHERE u.roli != 'admin' AND u.zyra_id = $zyra_id
+            ORDER BY m.created_at DESC
+            LIMIT 10");
+        $klientet = $stmt->fetchAll();
+
+        if ($klientet) {
+            foreach ($klientet as $klient) {
+                $klient_id = $klient['id'];
+                echo "<div style='margin-bottom:16px;'>";
+                echo "<strong>" . htmlspecialchars($klient['emri'] . ' ' . $klient['mbiemri']) . "</strong> <br>";
+
+                // Shfaq mesazhet e fundit mes adminit dhe klientit
+                $stmtMsg = $pdo->prepare("SELECT m.*, u.emri, u.mbiemri
+                    FROM messages m
+                    JOIN users u ON u.id = IF(m.sender_id = ?, m.receiver_id, m.sender_id)
+                    WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+                    ORDER BY m.created_at DESC
+                    LIMIT 5");
+                $stmtMsg->execute([$klient_id, $user_id, $klient_id, $klient_id, $user_id]);
+                $messages = $stmtMsg->fetchAll();
+
+                if ($messages) {
+                    foreach ($messages as $msg) {
+                        $bg_color = $msg['sender_id'] == $user_id ? '#eafaf1' : '#f1e7e7';
+                        echo "<div style='background:$bg_color;padding:10px 14px;border-radius:8px;margin-bottom:8px;'>";
+                        echo "<strong style='color:#184fa3;'>" . htmlspecialchars($msg['emri'] . ' ' . $msg['mbiemri']) . ":</strong> ";
+                        echo nl2br(htmlspecialchars($msg['message']));
+                        echo "<div style='font-size:0.85em;color:#666;margin-top:4px;'>" . date('d.m.Y H:i', strtotime($msg['created_at'])) . "</div>";
+                        echo "</div>";
+                    }
+                } else {
+                    echo "<div style='color:#888;'>Nuk ka mesazhe.</div>";
+                }
+
+                // Forma për dërgimin e mesazheve
+                echo "<form method='post' style='display:flex;gap:8px;margin-top:10px;'>";
+                echo "<input type='hidden' name='send_message_admin' value='1'>";
+                echo "<input type='hidden' name='klient_id' value='" . $klient_id . "'>";
+                echo "<input type='text' name='message_admin' placeholder='Shkruani përgjigjen tuaj...' style='flex:1;padding:8px;border-radius:6px;border:1px solid #e2eafc;' maxlength='500' required>";
+                echo "<button type='submit' style='background:#2d6cdf;color:#fff;padding:8px 18px;border-radius:8px;font-weight:600;'>Dërgo</button>";
+                echo "</form>";
+
+                echo "</div>";
+            }
+        } else {
+            echo "<div style='color:#888;'>Nuk ka klientë të rinj për të shfaqur.</div>";
+        }
+    } else {
+        echo "<div class='error'>Qasja e pamjaftueshme. Vetëm admini mund të shohë këtë seksion.</div>";
+    }
+    ?>
+</div>
+
+<?php
+// Ruaj mesazhin nga admini për klientin
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message_admin'], $_POST['klient_id'], $_POST['message_admin'])) {
+    $klient_id = intval($_POST['klient_id']);
+    $msg = trim($_POST['message_admin']);
+    if ($klient_id && $msg) {
+        $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
+        $stmt->execute([$user_id, $klient_id, $msg]);
+        // Rifresko faqen për të parë mesazhet e reja
+        header("Location: " . $_SERVER['PHP_SELF'] . "?klient_id=" . $klient_id);
+        exit();
+    }
+}
+?>
+    <!-- Seksioni promovues për platformën Noteria -->
+<div class="ads-section">
+    <div class="ads-title">
+        <span style="margin-right:10px;">&#128081;</span> Zbuloni fuqinë e Noteria.com!
     </div>
+    <div class="ads-cards">
+        <div class="ad-card">
+            <img src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80" class="ad-img" alt="Rezervim Online">
+            <div class="ad-content">
+                <h4>Rezervim Online i Termineve</h4>
+                <p>Rezervoni termin noterial nga shtëpia, pa pritje dhe pa stres. Zgjidhni zyrën, datën dhe orën që ju përshtatet!</p>
+                <a href="reservation.php#rezervo" class="ad-btn">Rezervo tani</a>
+            </div>
+        </div>
+        <div class="ad-card">
+            <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80" class="ad-img" alt="Pagesa Online">
+            <div class="ad-content">
+                <h4>Pagesa të Sigurta Online</h4>
+                <p>Kryeni pagesat për shërbimet noteriale përmes bankave të ndryshme ose Paysera, shpejt dhe sigurt.</p>
+                <a href="#pagesa" class="ad-btn">Mëso më shumë</a>
+            </div>
+        </div>
+        <div class="ad-card">
+            <img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=400&q=80" class="ad-img" alt="Njoftime & Statistika">
+            <div class="ad-content">
+                <h4>Njoftime & Statistika</h4>
+                <p>Merrni njoftime të menjëhershme për statusin e termineve, dokumenteve dhe shikoni statistikat tuaja në çdo kohë.</p>
+                <a href="#njoftime" class="ad-btn">Shiko njoftimet</a>
+            </div>
+        </div>
+        <div class="ad-card">
+            <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" class="ad-img" alt="Chat & Mbështetje">
+            <div class="ad-content">
+                <h4>Chat me Noterin & Mbështetje</h4>
+                <p>Komunikoni direkt me noterin ose merrni ndihmë nga ekipi ynë për çdo pyetje apo problem.</p>
+                <a href="#mesazhe" class="ad-btn">Kontakto tani</a>
+            </div>
+        </div>
+        <div class="ad-card">
+            <img src="https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" class="ad-img" alt="Lajme Ligjore">
+            <div class="ad-content">
+                <h4>Lajme & Informacione Ligjore</h4>
+                <p>Qëndroni të informuar me lajmet dhe ndryshimet më të fundit ligjore, direkt nga platforma Noteria.</p>
+                <a href="#lajme" class="ad-btn">Lexo lajmet</a>
+            </div>
+        </div>
+    </div>
+</div>
+<footer style="text-align:center; margin-top:40px; color:#888; font-size:1rem;">
+    <a href="Privacy_policy.php" style="color:#2d6cdf; text-decoration:underline;">Politika e Privatësisë</a>
+</footer>
     <script>
 document.addEventListener('DOMContentLoaded', function() {
     const zyraSelect = document.getElementById('zyra_id');
@@ -921,6 +1153,164 @@ document.addEventListener('DOMContentLoaded', function() {
     dateInput.addEventListener('change', checkSlot);
     timeInput.addEventListener('change', checkSlot);
 });
+document.getElementById('video-call-btn').onclick = function() {
+    document.getElementById('video-call-warning').style.display = 'block';
+    this.style.display = 'none';
+};
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('kalendar');
+    if (!calendarEl) return;
+
+    // Terminet nga PHP
+    var events = <?php echo json_encode(array_map(function($t) {
+        return [
+            'title' => $t['service'] . (isset($t['emri']) ? ' - ' . $t['emri'] . ' ' . $t['mbiemri'] : ''),
+            'start' => $t['date'] . 'T' . $t['time'],
+            'allDay' => false
+        ];
+    }, $calendar_terminet)); ?>;
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'sq',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: events,
+        height: 550
+    });
+    calendar.render();
+});
+</script>
+<!-- Vendos këtu kodin e tawk.to -->
+<!-- Start of Tawk.to Script -->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/67e3334b071c7e190d74f3b5/1j34rhim2';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+<!-- End of Tawk.to Script -->
+<!-- Seksioni i pagesës online -->
+<div class="zyra-section" id="pagesa">
+    <h2>Pagesa Online</h2>
+    <p>
+        Kryeni pagesat për shërbimet noteriale në mënyrë të sigurt përmes bankave të ndryshme, Paysera ose MoneyGram. Zgjidhni bankën tuaj të preferuar gjatë rezervimit të terminit dhe ndiqni udhëzimet për të përfunduar pagesën online.
+    </p>
+    <ul>
+        <li>Mbështet të gjitha bankat kryesore në Kosovë</li>
+        <li>Pagesa të shpejta dhe të sigurta</li>
+        <li>Konfirmim automatik i pagesës</li>
+    </ul>
+    <a href="reservation.php#rezervo" class="ad-btn">Paguaj tani</a>
+</div>
+<!-- Seksioni i lajmeve dhe informacioneve ligjore -->
+<div class="zyra-section" id="lajme">
+    <h2>Lajme & Informacione Ligjore</h2>
+    <?php
+    // Simulo lajme të ndryshme për platformën Noteria.com
+    $lajmet = [
+        [
+            'titulli' => 'Noteria.com lançon rezervimin online të termineve!',
+            'permbajtja' => 'Tani mund të rezervoni termin tuaj noterial nga shtëpia, shpejt dhe lehtë.',
+            'created_at' => '2025-08-01'
+        ],
+        [
+            'titulli' => 'Pagesa të sigurta online për çdo shërbim',
+            'permbajtja' => 'Platforma jonë mbështet pagesa përmes të gjitha bankave kryesore, Paysera dhe MoneyGram.',
+            'created_at' => '2025-07-28'
+        ],
+        [
+            'titulli' => 'Njoftime të menjëhershme për statusin e dokumenteve',
+            'permbajtja' => 'Çdo ndryshim në statusin e dokumenteve tuaja do të njoftohet automatikisht në panelin tuaj.',
+            'created_at' => '2025-07-20'
+        ],
+        [
+            'titulli' => 'Chat i drejtpërdrejtë me noterin tuaj',
+            'permbajtja' => 'Komunikoni shpejt me noterin për çdo pyetje apo paqartësi.',
+            'created_at' => '2025-07-15'
+        ],
+        [
+            'titulli' => 'Kalendar i integruar për menaxhimin e termineve',
+            'permbajtja' => 'Shikoni të gjitha terminet tuaja të rezervuara në një kalendar të thjeshtë për përdorim.',
+            'created_at' => '2025-07-10'
+        ],
+        [
+            'titulli' => 'Statistika të shpejta për përdoruesit dhe adminët',
+            'permbajtja' => 'Monitoroni numrin e termineve, dokumenteve dhe pagesave në kohë reale.',
+            'created_at' => '2025-07-05'
+        ],
+        [
+            'titulli' => 'Politika e privatësisë e përditësuar',
+            'permbajtja' => 'Lexoni versionin më të ri të politikës së privatësisë për të kuptuar si mbrohen të dhënat tuaja.',
+            'created_at' => '2025-07-01'
+        ],
+        [
+            'titulli' => 'Mbështetje teknike 24/7 për të gjithë përdoruesit',
+            'permbajtja' => 'Ekipi ynë është gjithmonë i gatshëm të ndihmojë për çdo problem teknik.',
+            'created_at' => '2025-06-28'
+        ],
+        [
+            'titulli' => 'Dokumentet tuaja të sigurta në cloud',
+            'permbajtja' => 'Të gjitha dokumentet ruhen në mënyrë të enkriptuar dhe të sigurt.',
+            'created_at' => '2025-06-20'
+        ],
+        [
+            'titulli' => 'Video thirrje me noterin',
+            'permbajtja' => 'Nisni video thirrje të sigurta për konsultime të shpejta ligjore.',
+            'created_at' => '2025-06-15'
+        ],
+        [
+            'titulli' => 'Platforma Noteria.com fiton çmimin për inovacion digjital',
+            'permbajtja' => 'Jemi krenarë që jemi vlerësuar për inovacionin në shërbimet noteriale online.',
+            'created_at' => '2025-06-10'
+        ],
+        [
+            'titulli' => 'Pyetjet më të shpeshta (FAQ) tani edhe më të detajuara',
+            'permbajtja' => 'Gjeni përgjigje për çdo pyetje rreth platformës Noteria.com.',
+            'created_at' => '2025-06-05'
+        ],
+        [
+            'titulli' => 'Risi: Pagesa me kartë bankare',
+            'permbajtja' => 'Tani mund të paguani edhe me kartë bankare për çdo shërbim noterial.',
+            'created_at' => '2025-06-01'
+        ],
+        [
+            'titulli' => 'Njoftim: Orari i ri i zyrave noteriale',
+            'permbajtja' => 'Zyrat tona janë të hapura nga ora 08:00 deri në 16:00, nga e hëna në të premte.',
+            'created_at' => '2025-05-28'
+        ],
+        [
+            'titulli' => 'Siguria e të dhënave tuaja është prioriteti ynë',
+            'permbajtja' => 'Zbatojmë standardet më të larta të sigurisë për mbrojtjen e informacionit tuaj.',
+            'created_at' => '2025-05-20'
+        ],
+        [
+            'titulli' => 'Noteria.com tani edhe në gjuhën angleze',
+            'permbajtja' => 'Platforma është e disponueshme për përdoruesit ndërkombëtarë.',
+            'created_at' => '2025-05-15'
+        ],
+        [
+            'titulli' => 'Lajm: Integrimi me sistemet shtetërore',
+            'permbajtja' => 'Noteria.com është integruar me sistemet shtetërore për verifikim të shpejtë të dokumenteve.',
+            'created_at' => '2025-05-10'
+        ]
+    ];
+
+    foreach ($lajmet as $lajm) {
+        echo "<div style='margin-bottom:14px;'><b>" . htmlspecialchars($lajm['titulli']) . "</b> <span style='color:#888;font-size:0.95em;'>(" . date('d.m.Y', strtotime($lajm['created_at'])) . ")</span><br>";
+        echo nl2br(htmlspecialchars($lajm['permbajtja'])) . "</div>";
+    }
+    ?>
+</div>
 </body>
 </html>

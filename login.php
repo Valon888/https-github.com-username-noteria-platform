@@ -36,7 +36,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = trim($_POST["password"]);
     $captcha_input = trim($_POST["captcha"] ?? '');
     $personal_number = trim($_POST["personal_number"] ?? '');
-    $photo = $_FILES['photo'] ?? null;
+    $photo_front = $_FILES['photo_front'] ?? null;
+    $photo_back = $_FILES['photo_back'] ?? null;
 
     // Validimi i email-it
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -56,17 +57,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
-    if (!$error && $photo && $photo['error'] === UPLOAD_ERR_OK) {
-        // Kontrollo formatin e fotos
+    if (!$error && $photo_front && $photo_front['error'] === UPLOAD_ERR_OK && $photo_back && $photo_back['error'] === UPLOAD_ERR_OK) {
         $allowed_types = ['image/jpeg', 'image/png'];
-        if (!in_array($photo['type'], $allowed_types)) {
-            $error = "Fotoja duhet të jetë në format JPG ose PNG!";
+        if (!in_array($photo_front['type'], $allowed_types) || !in_array($photo_back['type'], $allowed_types)) {
+            $error = "Fotot duhet të jenë në format JPG ose PNG!";
         } else {
-            // Ruaj foton (shembull, ruaj në folderin uploads)
             $target_dir = __DIR__ . "/uploads/";
             if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
-            $target_file = $target_dir . basename($photo["name"]);
-            move_uploaded_file($photo["tmp_name"], $target_file);
+            $target_file_front = $target_dir . 'front_' . basename($photo_front["name"]);
+            $target_file_back = $target_dir . 'back_' . basename($photo_back["name"]);
+            move_uploaded_file($photo_front["tmp_name"], $target_file_front);
+            move_uploaded_file($photo_back["tmp_name"], $target_file_back);
 
             $stmt = $pdo->prepare("SELECT id, emri, mbiemri, email, password, roli, personal_number FROM users WHERE email = ? AND personal_number = ?");
             $stmt->execute([$email, $personal_number]);
@@ -243,6 +244,9 @@ if ($data['vpn'] || $data['proxy']) {
 <body>
     <div class="container">
         <h2>Kyçuni në Noteria</h2>
+        <div style="margin-bottom:22px; color:#2d6cdf; font-size:1.08rem; font-weight:600;">
+            Noteria.com – Sjellim shërbime të shpejta dhe efikase për nevojat tuaja noteriale në pëllëmbë të dorës.
+        </div>
         <form method="POST" action="" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="email">Email:</label>
@@ -251,14 +255,19 @@ if ($data['vpn'] || $data['proxy']) {
             <div class="form-group">
                 <label for="password">Fjalëkalimi:</label>
                 <input type="password" id="password" name="password" required autocomplete="current-password">
+                Keni harruar fjalëkalimin? <a href="reset_password.php">Rivendosni këtu</a>
             </div>
             <div class="form-group">
                 <label for="personal_number">Numri Personal i Letërnjoftimit/Pasaportës:</label>
                 <input type="text" id="personal_number" name="personal_number" required maxlength="10" pattern="\d{9,10}">
             </div>
             <div class="form-group">
-                <label for="photo">Ngarko Foto të Letërnjoftimit/Pasaportës:</label>
-                <input type="file" id="photo" name="photo" accept="image/jpeg,image/png" required>
+                <label for="photo_front">Ngarko Foto (Para) të Letërnjoftimit/Pasaportës:</label>
+                <input type="file" id="photo_front" name="photo_front" accept="image/jpeg,image/png" required>
+            </div>
+            <div class="form-group">
+                <label for="photo_back">Ngarko Foto (Mbrapa) të Letërnjoftimit/Pasaportës:</label>
+                <input type="file" id="photo_back" name="photo_back" accept="image/jpeg,image/png" required>
             </div>
             <div class="captcha-group">
                 <label class="captcha-label" for="captcha">Shkruani kodin:</label>
@@ -279,12 +288,37 @@ if ($data['vpn'] || $data['proxy']) {
         <div class="register-link">
             Nuk keni llogari? <a href="register.php">Regjistrohuni këtu</a>
         </div>
+        <div style="margin-top:22px; font-size:0.95rem; color:#555; background:#f8fafc; border-radius:8px; padding:12px;">
+            <strong>Njoftim për siguri:</strong><br>
+            Nëse keni probleme me kyçjen, kontrolloni se:
+            <ul style="margin: 8px 0 0 20px; text-align: left;">
+                <li>Fjalëkalimi është i saktë dhe përmban të paktën 6 karaktere.</li>
+                <li>Numri personal është i saktë dhe përputhet me dokumentin tuaj të identitetit.</li>
+                <li>Fotot janë ngarkuar siç kërkohet (format JPG ose PNG).</li>
+                <li>CAPTCHA është plotësuar saktë.</li>
+            </ul>
+            Nëse problemi vazhdon, ju lutem kontaktoni mbështetjen teknike.
+        </div>
         <?php if ($_SESSION['role'] === 'admin'): ?>
     <!-- Kodi për adminin këtu -->
     <a href="admin_panel.php">Paneli i Administrimit</a>
 <?php endif; ?>
     </div>
 </body>
+<!-- Start of Tawk.to Script -->
+<!-- Start of Tawk.to Script -->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/67e3334b071c7e190d74f3b5/1j34rhim2';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+<!-- Fundi i Script-it Tawk.to -->
 </html>
 <?php
 if ($_SESSION['role'] !== 'admin') {
@@ -292,3 +326,6 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 ?>
+<footer style="text-align:center; margin-top:40px; color:#888; font-size:1rem;">
+    <a href="Privacy_policy.php" style="color:#2d6cdf; text-decoration:underline;">Politika e Privatësisë</a>
+</footer>
