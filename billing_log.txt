@@ -1,0 +1,8 @@
+[2025-10-02 10:24:10] === Fillim i procesit të faturimit automatik ===
+[2025-10-02 10:24:10] Sot nuk është dita e faturimit (1 e muajit). Dita aktuale: 02
+[2025-10-02 10:25:15] === Fillim i procesit të faturimit automatik ===
+[2025-10-02 10:25:15] Sot nuk është dita e faturimit (1 e muajit). Dita aktuale: 02
+[2025-10-02 11:31:58] === Fillim i procesit të faturimit automatik ===
+[2025-10-02 11:31:58] Sot nuk është dita e faturimit (1 e muajit). Dita aktuale: 02
+[2025-10-02 11:34:27] === Fillim i procesit të faturimit automatik ===
+[2025-10-02 11:34:27] Sot nuk është dita e faturimit (1 e muajit). Dita aktuale: 02

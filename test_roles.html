@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Test Login me Role | Noteria</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        .role-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .role-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+        }
+        .role-card.admin {
+            border-color: #ff4444;
+        }
+        .role-card.admin::before {
+            background: #ff4444;
+        }
+        .role-card.notary {
+            border-color: #4488ff;
+        }
+        .role-card.notary::before {
+            background: #4488ff;
+        }
+        .role-card.user {
+            border-color: #44aa44;
+        }
+        .role-card.user::before {
+            background: #44aa44;
+        }
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .role-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .role-card.admin .role-icon {
+            color: #ff4444;
+        }
+        .role-card.notary .role-icon {
+            color: #4488ff;
+        }
+        .role-card.user .role-icon {
+            color: #44aa44;
+        }
+        .role-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .role-description {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .credentials {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+        }
+        .credentials strong {
+            display: block;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .credentials-label {
+            color: #999;
+            font-size: 0.85rem;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            font-family: 'Poppins', sans-serif;
+        }
+        .btn-admin {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: white;
+        }
+        .btn-notary {
+            background: linear-gradient(135deg, #4488ff 0%, #0055cc 100%);
+            color: white;
+        }
+        .btn-user {
+            background: linear-gradient(135deg, #44aa44 0%, #007700 100%);
+            color: white;
+        }
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .features {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .features h4 {
+            color: #333;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .features ul {
+            list-style: none;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .features li {
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #44aa44;
+            font-weight: bold;
+        }
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #4488ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .info-box strong {
+            display: block;
+            margin-bottom: 10px;
+            color: #0055cc;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .roles-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Login me Role</h1>
+        <p class="subtitle">Zgjidhni rolin tuaj dhe hyrni në platformë</p>
+
+        <div class="roles-grid">
+            <!-- ADMIN CARD -->
+            <div class="role-card admin">
+                <div class="role-icon">👨‍💼</div>
+                <div class="role-title">ADMIN</div>
+                <div class="role-description">
+                    Administratori i platformës me qasje të plotë
+                </div>
+                <div class="credentials">
+                    <strong>📧 Email:</strong>
+                    <span class="credentials-label">admin@noteria.al</span>
+                    <strong style="margin-top: 10px;">🔑 Fjalëkalimi:</strong>
+                    <span class="credentials-label">Admin@2025</span>
+                </div>
+                <div class="features">
+                    <h4>📋 Qasja:</h4>
+                    <ul>
+                        <li>Dashboard i plotë (admin_dashboard.php)</li>
+                        <li>Menaxhim përdoruesish</li>
+                        <li>Statistika dhe raporte</li>
+                        <li>Konfigurimi i sistemit</li>
+                        <li>Auditim dhe logje</li>
+                    </ul>
+                </div>
+                <a href="login.php" class="btn btn-admin" style="margin-top: 15px;">Hyr si Admin</a>
+            </div>
+
+            <!-- NOTARY CARD -->
+            <div class="role-card notary">
+                <div class="role-icon">📜</div>
+                <div class="role-title">NOTERE</div>
+                <div class="role-description">
+                    Notere i zyrës noteriale
+                </div>
+                <div class="credentials">
+                    <strong>📧 Email:</strong>
+                    <span class="credentials-label">notary@noteria.al</span>
+                    <strong style="margin-top: 10px;">🔑 Fjalëkalimi:</strong>
+                    <span class="credentials-label">Notary@2025</span>
+                </div>
+                <div class="features">
+                    <h4>📋 Qasja:</h4>
+                    <ul>
+                        <li>Dashboard i zyrës (dashboard.php)</li>
+                        <li>Shërbime dhe rezervime</li>
+                        <li>Të dhënat e zyrës</li>
+                        <li>Raporte të zyrës</li>
+                        <li>Historiku i transaksioneve</li>
+                    </ul>
+                </div>
+                <a href="login.php" class="btn btn-notary" style="margin-top: 15px;">Hyr si Notere</a>
+            </div>
+
+            <!-- USER CARD -->
+            <div class="role-card user">
+                <div class="role-icon">👤</div>
+                <div class="role-title">PËRDORUES</div>
+                <div class="role-description">
+                    Përdorues i thjeshtë për shërbimet
+                </div>
+                <div class="credentials">
+                    <strong>📧 Email:</strong>
+                    <span class="credentials-label">user@noteria.al</span>
+                    <strong style="margin-top: 10px;">🔑 Fjalëkalimi:</strong>
+                    <span class="credentials-label">User@2025</span>
+                </div>
+                <div class="features">
+                    <h4>📋 Qasja:</h4>
+                    <ul>
+                        <li>Dashboard i faturimit</li>
+                        <li>Pagesat dhe faturat</li>
+                        <li>Historiku i pagesave</li>
+                        <li>Shërbimet e disponueshme</li>
+                        <li>Profileja personale</li>
+                    </ul>
+                </div>
+                <a href="login.php" class="btn btn-user" style="margin-top: 15px;">Hyr si Përdorues</a>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>💡 Informacion i Rëndësishëm:</strong>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li>✓ Të tre rolet janë krijuar në bazën e të dhënave</li>
+                <li>✓ Login-i do t'ju ridirektojë në dashboard-in e duhur</li>
+                <li>✓ Admin sheh admin_dashboard.php</li>
+                <li>✓ Notere sheh dashboard.php</li>
+                <li>✓ Përdorues sheh billing_dashboard.php</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

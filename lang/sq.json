@@ -1,0 +1,129 @@
+{
+  "common": {
+    "hello": "Përshëndetje",
+    "welcome": "Mirë se vini",
+    "goodbye": "Mirupafshim",
+    "yes": "Po",
+    "no": "Jo",
+    "ok": "OK",
+    "cancel": "Anulo",
+    "save": "Ruaj",
+    "delete": "Fshij",
+    "edit": "Modifiko",
+    "search": "Kërko",
+    "loading": "Po ngarkon...",
+    "error": "Gabim",
+    "success": "Sukses",
+    "email": "Email",
+    "password": "Fjalëkalimi",
+    "language": "Gjuha"
+  },
+  
+  "header": {
+    "dashboard": "Dashboard",
+    "reservations": "Rezervimet",
+    "e_signatures": "E-Nënshkrime",
+    "subscriptions": "Abonimet",
+    "video_calls": "Video Thirrje",
+    "profile": "Profili Im",
+    "settings": "Cilësimet",
+    "logout": "Dilni"
+  },
+  
+  "auth": {
+    "login": "Kyçuni",
+    "register": "Regjistrohu",
+    "email": "Email",
+    "password": "Fjalëkalimi",
+    "confirm_password": "Konfirmo Fjalëkalimin",
+    "phone": "Telefoni",
+    "login_title": "Kyçuni në Noterian",
+    "register_title": "Krijoni Llogari",
+    "forgot_password": "Harrova Fjalëkalimin",
+    "no_account": "Nuk keni llogari?",
+    "have_account": "Keni llogari tashmë?",
+    "invalid_credentials": "Email ose fjalëkalim i gabuar",
+    "email_required": "Email është i detyrueshëm",
+    "password_weak": "Fjalëkalimi duhet të ketë të paktën 8 karaktere"
+  },
+  
+  "landing": {
+    "title": "Mirë se vini në Noteria!",
+    "subtitle": "Platforma profesionale për të gjithë shërbimeve noteriale",
+    "description": "Menaxhoni rezervimet, pagesat, video konsultencat dhe abonimet tuaja në një vend të sigurt dhe të përshtatshëm.",
+    "tagline": "Përvojë e thjeshtë, shërbim i shpejtë, siguri maksimale.",
+    "register_cta": "Regjistrohu Tani",
+    "login_cta": "Kyçuni",
+    "why_choose": "Përse të Zgjedhni Noterian?",
+    "security": "Siguresia Maksimale",
+    "security_desc": "Të dhënat tuaja janë të mbrojtura me enkriptim të avancuar dhe pëlqim të GDPR.",
+    "speed": "Shpejt & Eficient",
+    "speed_desc": "Përfundoni procedurat noteriale në minuta, jo në orë apo ditë.",
+    "professionals": "Notera Profesionalë",
+    "professionals_desc": "Punë me notera të certifikuar dhe të përvojshëm në platformën tonë.",
+    "modern": "Platforma Moderne",
+    "modern_desc": "Qasje 24/7 nga kudo - telefon, tablet ose kompjuter.",
+    "video": "Video Konsultime",
+    "video_desc": "Kontaktoni notera direkt përmes video për pyetje dhe këshillim.",
+    "transparent": "Çmime Transparente",
+    "transparent_desc": "Asnjë kosto e fshehur - shihni çmimin përpara se të përfundoni."
+  },
+  
+  "services": {
+    "title": "Shërbime Noteriale",
+    "authentications": "Autentifikime Dokumentesh",
+    "authentications_desc": "Autentifikimet e dokumenteve personale, kontratash dhe marrëveshjesh.",
+    "certifications": "Vërtetimet Nënshkrimesh",
+    "certifications_desc": "Vërtetime të nënshkrimeve dhe faksimile të dokumenteve publike.",
+    "consultations": "Konsultime Video",
+    "consultations_desc": "Konsultime direkte me noter nëpërmjet videokamer të sigurt.",
+    "wills": "Testamentet",
+    "wills_desc": "Përgatitja dhe autentifikimi i testamenteve dhe marrëveshjeve të tjera.",
+    "agreements": "Marrëveshje Ligjore",
+    "agreements_desc": "Përgatitja dhe ligjërim i marrëveshjeve dhe kontratash të ndryshme.",
+    "premium": "Abonime Premium",
+    "premium_desc": "Zgjidh një abonimin përshtatës për nevojat tuaja noteriale."
+  },
+  
+  "dashboard": {
+    "title": "Dashboardi Im",
+    "statistics": "Statistikat e Juaja",
+    "active_reservations": "Rezervime Aktive",
+    "completed_payments": "Pagesa të Përfunduara",
+    "subscription_status": "Statusi Abonimit",
+    "quick_actions": "Aksioni Shpejt",
+    "create_reservation": "Krijoni Rezervim",
+    "choose_subscription": "Zgjidh Abonimin",
+    "make_video_call": "Video Thirrje",
+    "manage_payments": "Pagesat"
+  },
+  
+  "e_signature": {
+    "title": "E-Nënshkrime",
+    "subtitle": "Nënshkruani dokumente elektronikisht në mënyrë të sigurt",
+    "upload_document": "Ngarkoni Dokumentin",
+    "document_name": "Emri i Dokumentit",
+    "send_signature": "Dërgo për Nënshkrim",
+    "history": "Historiku i Nënshkrimeve",
+    "status": "Statusi",
+    "signed_at": "Nënshkruar më",
+    "no_documents": "Nuk keni dokumenta të nënshkruar",
+    "upload_first": "Ngarkoni dokumentin tuaj të parë më lart",
+    "status_sent": "📤 Dërguar",
+    "status_delivered": "✉️ Dorëzuar",
+    "status_signed": "✍️ Nënshkruar",
+    "status_completed": "✅ Përfunduar",
+    "status_declined": "❌ Refuzuar",
+    "status_voided": "🚫 Anuluar"
+  },
+  
+  "errors": {
+    "not_found": "Nuk u gjet",
+    "unauthorized": "Nuk jeni i autorizuar",
+    "forbidden": "Qasja e refuzuar",
+    "server_error": "Gabim në server",
+    "invalid_input": "Hyrja e pavlefshme",
+    "file_too_large": "Dokumenti nuk duhet të jetë më i madh se 5MB",
+    "invalid_file_type": "Vetëm PDF dhe Word dokumente lejohen"
+  }
+}

@@ -1,0 +1,1 @@
+﻿<?php require 'confidb.php'; $stmt = $pdo->query('SELECT * FROM payments LIMIT 1'); $columns = array(); for ($i = 0; $i < $stmt->columnCount(); $i++) { $col = $stmt->getColumnMeta($i); $columns[] = $col['name']; } print_r($columns); ?>

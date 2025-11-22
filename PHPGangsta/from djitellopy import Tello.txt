@@ -1,0 +1,8 @@
+from djitellopy import Tello
+
+tello = Tello()
+tello.connect()
+tello.streamon()
+
+frame = tello.get_frame_read().frame
+# Proceso frame me modelin AI (si më lart)

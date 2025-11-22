@@ -1,0 +1,21 @@
+.selected-plan-info {
+    margin-top: 0.5rem;
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.selected-plan-info i {
+    font-size: 1rem;
+    color: var(--success);
+}
+
+input[readonly] {
+    background-color: #f9fafb !important;
+    cursor: not-allowed;
+}

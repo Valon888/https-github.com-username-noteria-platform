@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testo API Detyrat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow: auto;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        label {
+            font-weight: bold;
+        }
+        .response {
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Testimi i API për Detyrat</h1>
+        
+        <div>
+            <label for="token">Token i autentikimit:</label>
+            <input type="text" id="token" placeholder="Vendosni token-in e autentikimit">
+        </div>
+        
+        <h2>1. Listimi i detyrave</h2>
+        <div>
+            <button onclick="getDetyrat()">Merr të gjitha detyrat</button>
+            <div class="response">
+                <pre id="listResponse">Përgjigja do të shfaqet këtu...</pre>
+            </div>
+        </div>
+        
+        <h2>2. Shto një detyrë të re</h2>
+        <div>
+            <div class="form-group">
+                <label for="idPunonjesi">ID e punonjësit:</label>
+                <input type="number" id="idPunonjesi" value="1">
+            </div>
+            
+            <div class="form-group">
+                <label for="titulli">Titulli i detyrës:</label>
+                <input type="text" id="titulli" placeholder="Vendosni titullin">
+            </div>
+            
+            <div class="form-group">
+                <label for="pershkrimi">Përshkrimi:</label>
+                <textarea id="pershkrimi" rows="3" placeholder="Vendosni përshkrimin"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="prioriteti">Prioriteti:</label>
+                <select id="prioriteti">
+                    <option value="I ulët">I ulët</option>
+                    <option value="Mesatar" selected>Mesatar</option>
+                    <option value="I lartë">I lartë</option>
+                    <option value="Urgjent">Urgjent</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="afati">Afati:</label>
+                <input type="datetime-local" id="afati">
+            </div>
+            
+            <button onclick="shtoDetyre()">Shto detyrën</button>
+            <div class="response">
+                <pre id="createResponse">Përgjigja do të shfaqet këtu...</pre>
+            </div>
+        </div>
+        
+        <h2>3. Merr një detyrë specifike</h2>
+        <div>
+            <div class="form-group">
+                <label for="detyraId">ID e detyrës:</label>
+                <input type="number" id="detyraId" placeholder="Vendosni ID e detyrës">
+            </div>
+            
+            <button onclick="getDetyre()">Merr detyrën</button>
+            <div class="response">
+                <pre id="getOneResponse">Përgjigja do të shfaqet këtu...</pre>
+            </div>
+        </div>
+        
+        <h2>4. Përditëso një detyrë</h2>
+        <div>
+            <div class="form-group">
+                <label for="updateId">ID e detyrës për përditësim:</label>
+                <input type="number" id="updateId" placeholder="Vendosni ID e detyrës">
+            </div>
+            
+            <div class="form-group">
+                <label for="updateTitulli">Titulli i ri:</label>
+                <input type="text" id="updateTitulli" placeholder="Vendosni titullin e ri">
+            </div>
+            
+            <div class="form-group">
+                <label for="updateStatusi">Statusi i ri:</label>
+                <select id="updateStatusi">
+                    <option value="Në pritje">Në pritje</option>
+                    <option value="Në progres">Në progres</option>
+                    <option value="Përfunduar">Përfunduar</option>
+                    <option value="Anuluar">Anuluar</option>
+                </select>
+            </div>
+            
+            <button onclick="perditesoDetyre()">Përditëso detyrën</button>
+            <div class="response">
+                <pre id="updateResponse">Përgjigja do të shfaqet këtu...</pre>
+            </div>
+        </div>
+        
+        <h2>5. Fshi një detyrë</h2>
+        <div>
+            <div class="form-group">
+                <label for="deleteId">ID e detyrës për fshirje:</label>
+                <input type="number" id="deleteId" placeholder="Vendosni ID e detyrës">
+            </div>
+            
+            <button onclick="fshiDetyre()">Fshi detyrën</button>
+            <div class="response">
+                <pre id="deleteResponse">Përgjigja do të shfaqet këtu...</pre>
+            </div>
+        </div>
+        
+        <h2>6. Shto koment në një detyrë</h2>
+        <div>
+            <div class="form-group">
+                <label for="komentDetyraId">ID e detyrës:</label>
+                <input type="number" id="komentDetyraId" placeholder="Vendosni ID e detyrës">
+            </div>
+            
+            <div class="form-group">
+                <label for="koment">Komenti:</label>
+                <textarea id="koment" rows="2" placeholder="Shkruani komentin tuaj"></textarea>
+            </div>
+            
+            <button onclick="shtoKoment()">Shto komentin</button>
+            <div class="response">
+                <pre id="komentResponse">Përgjigja do të shfaqet këtu...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Bazuar në strukturën e API
+        const baseUrl = 'http://localhost:8000';
+        
+        // Funksion ndihmës për të marrë token-in
+        function getToken() {
+            return document.getElementById('token').value;
+        }
+        
+        // Funksion ndihmës për të bërë kërkesa në API
+        async function fetchAPI(endpoint, method = 'GET', body = null) {
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                };
+                
+                const options = {
+                    method: method,
+                    headers: headers
+                };
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(`${baseUrl}${endpoint}`, options);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error:', error);
+                return { success: false, message: error.message };
+            }
+        }
+        
+        // 1. Listimi i detyrave
+        async function getDetyrat() {
+            const responseElement = document.getElementById('listResponse');
+            responseElement.textContent = 'Duke u ngarkuar...';
+            
+            const data = await fetchAPI('/detyre');
+            responseElement.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // 2. Shtimi i një detyre të re
+        async function shtoDetyre() {
+            const responseElement = document.getElementById('createResponse');
+            responseElement.textContent = 'Duke u ngarkuar...';
+            
+            const detyre = {
+                id_punonjesi: document.getElementById('idPunonjesi').value,
+                titulli: document.getElementById('titulli').value,
+                pershkrimi: document.getElementById('pershkrimi').value,
+                prioriteti: document.getElementById('prioriteti').value,
+                afati: document.getElementById('afati').value
+            };
+            
+            const data = await fetchAPI('/detyre', 'POST', detyre);
+            responseElement.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // 3. Marrja e një detyre specifike
+        async function getDetyre() {
+            const responseElement = document.getElementById('getOneResponse');
+            responseElement.textContent = 'Duke u ngarkuar...';
+            
+            const id = document.getElementById('detyraId').value;
+            if (!id) {
+                responseElement.textContent = 'Ju lutemi vendosni ID e detyrës';
+                return;
+            }
+            
+            const data = await fetchAPI(`/detyre/${id}`);
+            responseElement.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // 4. Përditësimi i një detyre
+        async function perditesoDetyre() {
+            const responseElement = document.getElementById('updateResponse');
+            responseElement.textContent = 'Duke u ngarkuar...';
+            
+            const id = document.getElementById('updateId').value;
+            if (!id) {
+                responseElement.textContent = 'Ju lutemi vendosni ID e detyrës';
+                return;
+            }
+            
+            const updateData = {};
+            const titulli = document.getElementById('updateTitulli').value;
+            if (titulli) {
+                updateData.titulli = titulli;
+            }
+            
+            const statusi = document.getElementById('updateStatusi').value;
+            if (statusi) {
+                updateData.statusi = statusi;
+            }
+            
+            const data = await fetchAPI(`/detyre/${id}`, 'PUT', updateData);
+            responseElement.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // 5. Fshirja e një detyre
+        async function fshiDetyre() {
+            const responseElement = document.getElementById('deleteResponse');
+            responseElement.textContent = 'Duke u ngarkuar...';
+            
+            const id = document.getElementById('deleteId').value;
+            if (!id) {
+                responseElement.textContent = 'Ju lutemi vendosni ID e detyrës';
+                return;
+            }
+            
+            const data = await fetchAPI(`/detyre/${id}`, 'DELETE');
+            responseElement.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // 6. Shtimi i një komenti në detyrë
+        async function shtoKoment() {
+            const responseElement = document.getElementById('komentResponse');
+            responseElement.textContent = 'Duke u ngarkuar...';
+            
+            const id = document.getElementById('komentDetyraId').value;
+            if (!id) {
+                responseElement.textContent = 'Ju lutemi vendosni ID e detyrës';
+                return;
+            }
+            
+            const komentTekst = document.getElementById('koment').value;
+            if (!komentTekst) {
+                responseElement.textContent = 'Ju lutemi shkruani një koment';
+                return;
+            }
+            
+            const data = await fetchAPI(`/detyre/${id}/koment`, 'POST', { koment: komentTekst });
+            responseElement.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Vendosni datën aktuale në fushën e afatit
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            // Shto 1 ditë për afatin default
+            now.setDate(now.getDate() + 1);
+            const formattedDate = now.toISOString().slice(0, 16);
+            document.getElementById('afati').value = formattedDate;
+        });
+    </script>
+</body>
+</html>

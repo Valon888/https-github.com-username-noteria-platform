@@ -1,0 +1,15 @@
+import torch
+from PIL import Image
+
+# Ngarko modelin YOLOv5 të trajnuar
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='model.pt')
+
+# Ngarko imazhin nga droni
+img = Image.open('frame.jpg')
+
+# Detekto objektet
+results = model(img)
+
+# Shfaq rezultatet
+results.show()
+results.print()

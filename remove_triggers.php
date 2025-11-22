@@ -1,0 +1,1 @@
+﻿<?php require 'confidb.php'; try { $pdo->exec('DROP TRIGGER IF EXISTS update_aktiv_after_busy_change'); $pdo->exec('DROP TRIGGER IF EXISTS update_busy_after_aktiv_change'); echo 'Triggers removed successfully'; } catch(Exception $e) { echo 'Error: ' . $e->getMessage(); } ?>

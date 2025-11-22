@@ -1,0 +1,38 @@
+Ofertë për Platformën e Menaxhimit të Zyrave dhe Rezervimeve
+
+I nderuar ekip i Gjirafa,
+
+Ju prezantojmë platformën tonë të avancuar për menaxhimin e zyrave, rezervimeve dhe faturave, e ndërtuar për të ofruar efikasitet, siguri dhe fleksibilitet maksimal për organizata të mëdha si Gjirafa.
+
+Veçoritë kryesore:
+- Multigjuhësi (Shqip, Serbisht, Anglisht)
+- Menaxhim i zyrave, përdoruesve dhe roleve
+- Rezervime online dhe menaxhim orarësh
+- Gjenerim automatik i faturave PDF
+- Siguri e lartë (hashing fjalëkalimesh, captcha, audit log, IP block)
+- UI/UX modern, responsive dhe i personalizueshëm
+- Integrim me email (PHPMailer)
+- Panel administrimi, raporte dhe auditim
+- Dokumentacion i plotë teknik dhe përdoruesi
+
+Avantazhet ndaj zgjidhjeve të tjera:
+- Zgjidhje e personalizuar për nevojat e Gjirafa-s
+- Kontroll i plotë mbi kodin dhe të dhënat
+- Kosto njëherësh, pa pagesa mujore të fshehta
+- Mundësi për integrim me sistemet ekzistuese të kompanisë
+
+Çmimi i rekomanduar për zgjidhjen enterprise:
+7,000€ – 12,000€ (përfshin kodin burimor, dokumentacionin, trajnimin fillestar dhe mbështetje për 3 muaj)
+
+Shërbime shtesë (opsionale):
+- Personalizime dhe integrime të dedikuara
+- Mbështetje dhe mirëmbajtje afatgjatë
+- Trajnime të avancuara për stafin
+
+Jemi të gatshëm të ofrojmë një demo live dhe të diskutojmë çdo kërkesë të veçantë që mund të keni.
+
+Kontakti:
+Email: valonsadiku2018@gmail.com
+Tel: +38345213675
+
+Faleminderit për vëmendjen dhe presim me interes bashkëpunimin tuaj!

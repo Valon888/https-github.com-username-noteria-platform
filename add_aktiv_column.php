@@ -1,0 +1,1 @@
+﻿<?php require 'confidb.php'; try { $stmt = $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS aktiv TINYINT(1) DEFAULT 1'); echo 'Column added successfully'; } catch(Exception $e) { echo 'Error: ' . $e->getMessage(); } ?>

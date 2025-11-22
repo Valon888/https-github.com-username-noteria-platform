@@ -1,0 +1,12 @@
+{
+    "require": {
+        "firebase/php-jwt": "^6.11",
+        "laravel/ui": "^4.6",
+        "phpmailer/phpmailer": "^6.10",
+        "google/apiclient": "^2.18",
+        "phpgangsta/googleauthenticator": "dev-master",
+        "geoip2/geoip2": "^3.2",
+        "stripe/stripe-php": "^17.6",
+        "docusign/esign-client": "^8.4"
+    }
+}

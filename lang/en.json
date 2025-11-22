@@ -1,0 +1,129 @@
+{
+  "common": {
+    "hello": "Hello",
+    "welcome": "Welcome",
+    "goodbye": "Goodbye",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "email": "Email",
+    "password": "Password",
+    "language": "Language"
+  },
+  
+  "header": {
+    "dashboard": "Dashboard",
+    "reservations": "Reservations",
+    "e_signatures": "E-Signatures",
+    "subscriptions": "Subscriptions",
+    "video_calls": "Video Calls",
+    "profile": "My Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "phone": "Phone",
+    "login_title": "Login to Noteria",
+    "register_title": "Create Account",
+    "forgot_password": "Forgot Password?",
+    "no_account": "Don't have an account?",
+    "have_account": "Already have an account?",
+    "invalid_credentials": "Invalid email or password",
+    "email_required": "Email is required",
+    "password_weak": "Password must be at least 8 characters"
+  },
+  
+  "landing": {
+    "title": "Welcome to Noteria!",
+    "subtitle": "Professional platform for all notarial services",
+    "description": "Manage your reservations, payments, video consultations and subscriptions in one secure and convenient place.",
+    "tagline": "Simple experience, fast service, maximum security.",
+    "register_cta": "Register Now",
+    "login_cta": "Login",
+    "why_choose": "Why Choose Noteria?",
+    "security": "Maximum Security",
+    "security_desc": "Your data is protected with advanced encryption and GDPR compliance.",
+    "speed": "Fast & Efficient",
+    "speed_desc": "Complete notarial procedures in minutes, not hours or days.",
+    "professionals": "Professional Notaries",
+    "professionals_desc": "Work with certified and experienced notaries on our platform.",
+    "modern": "Modern Platform",
+    "modern_desc": "24/7 access from anywhere - phone, tablet or computer.",
+    "video": "Video Consultations",
+    "video_desc": "Contact notaries directly via video for questions and advice.",
+    "transparent": "Transparent Pricing",
+    "transparent_desc": "No hidden fees - see the price before you complete."
+  },
+  
+  "services": {
+    "title": "Notarial Services",
+    "authentications": "Document Authentications",
+    "authentications_desc": "Authentications of personal documents, contracts and agreements.",
+    "certifications": "Signature Certifications",
+    "certifications_desc": "Certifications of signatures and certified copies of public documents.",
+    "consultations": "Video Consultations",
+    "consultations_desc": "Direct consultations with notary via secure video.",
+    "wills": "Wills",
+    "wills_desc": "Preparation and authentication of wills and other agreements.",
+    "agreements": "Legal Agreements",
+    "agreements_desc": "Preparation and notarization of various agreements and contracts.",
+    "premium": "Premium Subscriptions",
+    "premium_desc": "Choose a subscription suitable for your notarial needs."
+  },
+  
+  "dashboard": {
+    "title": "My Dashboard",
+    "statistics": "Your Statistics",
+    "active_reservations": "Active Reservations",
+    "completed_payments": "Completed Payments",
+    "subscription_status": "Subscription Status",
+    "quick_actions": "Quick Actions",
+    "create_reservation": "Create Reservation",
+    "choose_subscription": "Choose Subscription",
+    "make_video_call": "Video Call",
+    "manage_payments": "Payments"
+  },
+  
+  "e_signature": {
+    "title": "E-Signatures",
+    "subtitle": "Sign documents electronically securely",
+    "upload_document": "Upload Document",
+    "document_name": "Document Name",
+    "send_signature": "Send for Signature",
+    "history": "Signature History",
+    "status": "Status",
+    "signed_at": "Signed at",
+    "no_documents": "You have no signed documents",
+    "upload_first": "Upload your first document above",
+    "status_sent": "📤 Sent",
+    "status_delivered": "✉️ Delivered",
+    "status_signed": "✍️ Signed",
+    "status_completed": "✅ Completed",
+    "status_declined": "❌ Declined",
+    "status_voided": "🚫 Voided"
+  },
+  
+  "errors": {
+    "not_found": "Not found",
+    "unauthorized": "You are not authorized",
+    "forbidden": "Access denied",
+    "server_error": "Server error",
+    "invalid_input": "Invalid input",
+    "file_too_large": "File must not be larger than 5MB",
+    "invalid_file_type": "Only PDF and Word documents are allowed"
+  }
+}

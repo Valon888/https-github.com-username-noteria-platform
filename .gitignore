@@ -1,0 +1,13 @@
+confidb.php
+uploads/
+fatura_pdf.php
+paysera_pay.php
+error.log
+*.log
+*.env
+database/
+vendor/
+node_modules/
+.DS_Store
+.vscode/
+.idea/

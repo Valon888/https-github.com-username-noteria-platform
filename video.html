@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Stream</title>
+</head>
+<body>
+<video id="v" autoplay></video>
+<script>
+const video = document.getElementById('v');
+video.setAttribute('playsinline', '');
+video.playsInline = true;
+navigator.mediaDevices.getUserMedia({video:true,audio:true})
+.then(s=>{video.srcObject=s;})
+.catch(e=>alert('Gabim: '+e.name));
+</script>
+</body>
+</html>

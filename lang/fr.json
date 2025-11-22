@@ -1,0 +1,129 @@
+{
+  "common": {
+    "hello": "Bonjour",
+    "welcome": "Bienvenue",
+    "goodbye": "Au revoir",
+    "yes": "Oui",
+    "no": "Non",
+    "ok": "D'accord",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "email": "Email",
+    "password": "Mot de passe",
+    "language": "Langue"
+  },
+  
+  "header": {
+    "dashboard": "Tableau de bord",
+    "reservations": "Réservations",
+    "e_signatures": "Signatures électroniques",
+    "subscriptions": "Abonnements",
+    "video_calls": "Appels vidéo",
+    "profile": "Mon profil",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirm_password": "Confirmer le mot de passe",
+    "phone": "Téléphone",
+    "login_title": "Connexion à Noteria",
+    "register_title": "Créer un compte",
+    "forgot_password": "Mot de passe oublié?",
+    "no_account": "Vous n'avez pas de compte?",
+    "have_account": "Vous avez déjà un compte?",
+    "invalid_credentials": "Email ou mot de passe invalide",
+    "email_required": "L'email est requis",
+    "password_weak": "Le mot de passe doit contenir au moins 8 caractères"
+  },
+  
+  "landing": {
+    "title": "Bienvenue chez Noteria!",
+    "subtitle": "Plateforme professionnelle pour tous les services notariaux",
+    "description": "Gérez vos réservations, paiements, consultations vidéo et abonnements en un seul endroit sûr et pratique.",
+    "tagline": "Expérience simple, service rapide, sécurité maximale.",
+    "register_cta": "S'inscrire maintenant",
+    "login_cta": "Connexion",
+    "why_choose": "Pourquoi choisir Noteria?",
+    "security": "Sécurité maximale",
+    "security_desc": "Vos données sont protégées par un chiffrement avancé et la conformité RGPD.",
+    "speed": "Rapide et efficace",
+    "speed_desc": "Complétez les procédures notariales en minutes, pas en heures ou en jours.",
+    "professionals": "Notaires professionnels",
+    "professionals_desc": "Travaillez avec des notaires certifiés et expérimentés sur notre plateforme.",
+    "modern": "Plateforme moderne",
+    "modern_desc": "Accès 24/7 de n'importe où - téléphone, tablette ou ordinateur.",
+    "video": "Consultations vidéo",
+    "video_desc": "Contactez directement les notaires via vidéo pour des questions et des conseils.",
+    "transparent": "Tarification transparente",
+    "transparent_desc": "Aucun frais caché - voir le prix avant de terminer."
+  },
+  
+  "services": {
+    "title": "Services notariaux",
+    "authentications": "Authentifications de documents",
+    "authentications_desc": "Authentifications de documents personnels, contrats et accords.",
+    "certifications": "Certifications de signatures",
+    "certifications_desc": "Certifications de signatures et copies certifiées de documents publics.",
+    "consultations": "Consultations vidéo",
+    "consultations_desc": "Consultations directes avec le notaire via vidéo sécurisée.",
+    "wills": "Testaments",
+    "wills_desc": "Préparation et authentification des testaments et autres accords.",
+    "agreements": "Accords juridiques",
+    "agreements_desc": "Préparation et notarisation de divers accords et contrats.",
+    "premium": "Abonnements premium",
+    "premium_desc": "Choisissez un abonnement adapté à vos besoins notariaux."
+  },
+  
+  "dashboard": {
+    "title": "Mon tableau de bord",
+    "statistics": "Vos statistiques",
+    "active_reservations": "Réservations actives",
+    "completed_payments": "Paiements effectués",
+    "subscription_status": "Statut de l'abonnement",
+    "quick_actions": "Actions rapides",
+    "create_reservation": "Créer une réservation",
+    "choose_subscription": "Choisir un abonnement",
+    "make_video_call": "Appel vidéo",
+    "manage_payments": "Paiements"
+  },
+  
+  "e_signature": {
+    "title": "Signatures électroniques",
+    "subtitle": "Signez des documents électroniquement en toute sécurité",
+    "upload_document": "Télécharger un document",
+    "document_name": "Nom du document",
+    "send_signature": "Envoyer pour signature",
+    "history": "Historique des signatures",
+    "status": "Statut",
+    "signed_at": "Signé à",
+    "no_documents": "Vous n'avez pas de documents signés",
+    "upload_first": "Téléchargez votre premier document ci-dessus",
+    "status_sent": "📤 Envoyé",
+    "status_delivered": "✉️ Livré",
+    "status_signed": "✍️ Signé",
+    "status_completed": "✅ Complété",
+    "status_declined": "❌ Refusé",
+    "status_voided": "🚫 Annulé"
+  },
+  
+  "errors": {
+    "not_found": "Non trouvé",
+    "unauthorized": "Vous n'êtes pas autorisé",
+    "forbidden": "Accès refusé",
+    "server_error": "Erreur du serveur",
+    "invalid_input": "Entrée invalide",
+    "file_too_large": "Le fichier ne doit pas dépasser 5MB",
+    "invalid_file_type": "Seuls les documents PDF et Word sont autorisés"
+  }
+}

@@ -1,0 +1,19 @@
+from flask import Flask, request, jsonify
+import openai
+
+app = Flask(__name__)
+openai.api_key = "API_KEY_YT"
+
+@app.route('/api/chatbot', methods=['POST'])
+def chatbot():
+    data = request.json
+    prompt = data.get('prompt', '')
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    answer = response.choices[0].message.content
+    return jsonify({"answer": answer})
+
+if __name__ == '__main__':
+    app.run(port=5001)

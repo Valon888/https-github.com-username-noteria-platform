@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abonim Noteri - SEPA Direct Debit</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body { background: #f8fafc; font-family: 'Montserrat', Arial, sans-serif; }
+        .container { max-width: 420px; margin: 60px auto; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); padding: 36px 28px; text-align: center; }
+        h1 { color: #2d6cdf; font-weight: 700; margin-bottom: 24px; font-size: 1.6rem; }
+        .form-group { margin-bottom: 22px; text-align: left; }
+        label { font-weight: 600; color: #444; margin-bottom: 8px; display: block; }
+        input { width: 100%; padding: 14px 12px; border: 2px solid #e2eafc; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; }
+        input:focus { outline: none; border-color: #2d6cdf; }
+        #iban-element { background: #f8fafc; border: 2px solid #e2eafc; border-radius: 8px; padding: 14px 12px; }
+        button { background: #2d6cdf; color: #fff; border: none; border-radius: 8px; padding: 12px 0; width: 100%; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #184fa3; }
+        .success { color: #388e3c; background: #eafaf1; border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 1rem; }
+        .error { color: #e74c3c; background: #fceaea; border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 1rem; }
+        .mandate { font-size: 0.95em; color: #555; margin-top: 18px; }
+        .sepa-subtitle { font-size: 1.1rem; color: #184fa3; }
+    </style>
+</head>
+    <h1>Abonim Mujor Noteri<br><span class="sepa-subtitle">SEPA Direct Debit</span></h1>
+<div class="container">
+    <h1>Abonim Mujor Noteri<br><span class="sepa-subtitle">SEPA Direct Debit</span></h1>
+    <form id="sepa-form">
+        <div class="form-group">
+            <label for="name">Emri i plotë</label>
+            <input type="text" id="name" required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email-i</label>
+            <input type="email" id="email" required>
+        </div>
+        <div class="form-group">
+            <label for="iban-element">IBAN</label>
+            <div id="iban-element"></div>
+        </div>
+        <button type="submit">Abonohu për 150€/muaj</button>
+    </form>
+    <div class="mandate">
+        Duke u abonuar, ju autorizoni Noteria të tërheqë automatikisht 150€ çdo muaj nga llogaria juaj bankare përmes SEPA Direct Debit.<br>
+        <strong>Mandati është i vlefshëm derisa ta anuloni.</strong>
+    </div>
+    <div id="result"></div>
+    <button id="pay">Paguaj me Stripe</button>
+</div>
+<script>
+const stripe = Stripe('pk_test_xxx'); // Zëvendëso me publishable key tënd
+const elements = stripe.elements();
+const iban = elements.create('iban', {
+    supportedCountries: ['SEPA'],
+    placeholderCountry: 'XK',
+    style: {
+        base: { fontSize: '1rem', color: '#222', '::placeholder': { color: '#aaa' } }
+    }
+});
+iban.mount('#iban-element');
+
+document.getElementById('sepa-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    document.querySelector('button').disabled = true;
+    document.getElementById('result').innerHTML = '';
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+
+    // 1. Kërko SetupIntent client secret nga backend
+    let setupIntentSecret = null;
+    try {
+        const resp = await fetch('create_sepa_setup_intent.php');
+        const data = await resp.json();
+        if (!data.clientSecret) throw new Error(data.error || 'SetupIntent nuk u krijua');
+        setupIntentSecret = data.clientSecret;
+    } catch (err) {
+        document.getElementById('result').innerHTML = '<div class="error">' + err.message + '</div>';
+        document.querySelector('button').disabled = false;
+        return;
+    }
+
+    // 2. Konfirmo SEPA mandate me Stripe Elements
+    const {setupIntent, error} = await stripe.confirmSepaDebitSetup(setupIntentSecret, {
+        payment_method: {
+            sepa_debit: iban,
+            billing_details: {name, email}
+        }
+    });
+    if (error) {
+        document.getElementById('result').innerHTML = '<div class="error">' + error.message + '</div>';
+        document.querySelector('button').disabled = false;
+        return;
+    }
+
+    // 3. Krijo subscription në backend me payment_method_id
+    fetch('create_sepa_subscription_pm.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            name,
+            email,
+            payment_method_id: setupIntent.payment_method
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('result').innerHTML = '<div class="success">Abonimi u krijua me sukses! ID: ' + data.subscription_id + '</div>';
+        } else {
+            document.getElementById('result').innerHTML = '<div class="error">' + (data.error || 'Gabim i panjohur') + '</div>';
+        }
+        document.querySelector('button').disabled = false;
+    });
+});
+
+document.getElementById('pay').onclick = function() {
+  fetch('checkout_session.php')
+    .then(r => r.json())
+    .then(data => {
+        if(data.url) {
+            window.location = data.url;
+        } else {
+            alert('Gabim: ' + (data.error || 'Nuk u gjenerua linku i pagesës.'));
+        }
+    });
+};
+</script>
+</body>
+</html>

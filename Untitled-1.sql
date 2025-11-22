@@ -1,0 +1,1 @@
+DELETE FROM rate_limit WHERE created_at < datetime('now', '-1 day');
