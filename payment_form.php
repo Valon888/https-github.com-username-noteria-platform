@@ -72,7 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="sq">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
     <title>Forma e Pagesës - Noteria</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -183,6 +186,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
+        /* iOS specific fixes */
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            border-radius: 6px;
+        }
+        
+        input[type="number"] {
+            -webkit-appearance: textfield;
+        }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        /* Disable autocorrect on inputs */
+        input[type="text"],
+        textarea {
+            -webkit-autocorrect: off;
+            -webkit-spellcheck: off;
+            spellcheck: false;
+        }
+        
         textarea {
             resize: vertical;
             min-height: 100px;
@@ -284,13 +315,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #333;
         }
         
-        @media (max-width: 480px) {
+        /* Mobile First - Extra Small Devices (320px and up) */
+        @media (max-width: 375px) {
+            .container {
+                padding: 10px;
+            }
+            
             .payment-card {
-                border-radius: 8px;
+                border-radius: 6px;
             }
             
             .payment-header {
-                padding: 20px;
+                padding: 15px;
+            }
+            
+            .payment-header h1 {
+                font-size: 20px;
+                margin-bottom: 8px;
+            }
+            
+            .payment-header p {
+                font-size: 12px;
+            }
+            
+            .payment-body {
+                padding: 15px;
+            }
+            
+            input, textarea {
+                font-size: 16px;
+                padding: 10px;
+            }
+            
+            label {
+                font-size: 13px;
+                margin-bottom: 6px;
+            }
+            
+            .form-helper {
+                font-size: 11px;
+            }
+            
+            .submit-btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            .info-box {
+                padding: 12px;
+                font-size: 12px;
+            }
+            
+            .success-details {
+                padding: 15px;
+            }
+        }
+        
+        /* Small Mobile Devices (376px - 425px): iPhone SE, SE 2, etc */
+        @media (min-width: 376px) and (max-width: 425px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .payment-header {
+                padding: 18px;
+            }
+            
+            .payment-header h1 {
+                font-size: 22px;
+            }
+            
+            .payment-body {
+                padding: 18px;
+            }
+            
+            input, textarea {
+                font-size: 16px;
+            }
+            
+            label {
+                font-size: 13px;
+            }
+        }
+        
+        /* Regular Mobile Devices (426px - 768px): iPhones 12-14, Pixels, Galaxy */
+        @media (min-width: 426px) and (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .container {
+                padding: 0;
+            }
+            
+            .payment-card {
+                border-radius: 10px;
+            }
+            
+            .payment-header {
+                padding: 24px;
             }
             
             .payment-header h1 {
@@ -298,10 +421,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             .payment-body {
-                padding: 20px;
+                padding: 24px;
             }
             
             input, textarea {
+                font-size: 16px;
+                padding: 11px;
+            }
+            
+            label {
+                font-size: 13px;
+                margin-bottom: 7px;
+            }
+            
+            .submit-btn {
+                padding: 13px;
+                font-size: 15px;
+            }
+        }
+        
+        /* Large Tablets (769px - 1024px): iPad, iPad Air */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                max-width: 800px;
+            }
+            
+            .payment-header h1 {
+                font-size: 32px;
+            }
+            
+            input, textarea {
+                padding: 13px;
+                font-size: 15px;
+            }
+        }
+        
+        /* Desktop and Large Screens (1025px and up) */
+        @media (min-width: 1025px) {
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+        }
+        
+        /* Landscape Orientation for Mobile */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .payment-header {
+                padding: 15px;
+            }
+            
+            .payment-header h1 {
+                font-size: 20px;
+                margin-bottom: 5px;
+            }
+            
+            .payment-header p {
+                font-size: 12px;
+            }
+            
+            .payment-body {
+                padding: 15px;
+            }
+            
+            .form-group {
+                margin-bottom: 12px;
+            }
+            
+            input, textarea {
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            textarea {
+                min-height: 60px;
+            }
+            
+            label {
+                margin-bottom: 4px;
+                font-size: 13px;
+            }
+        }
+        
+        /* High DPI Devices (Retina displays) */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            body {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+        }
+        
+        /* Touch-friendly adjustments */
+        @media (hover: none) and (pointer: coarse) {
+            input, textarea, .submit-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            input, textarea {
+                padding: 12px;
+            }
+            
+            .submit-btn {
+                padding: 14px;
                 font-size: 16px;
             }
         }
