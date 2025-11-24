@@ -87,15 +87,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0;
+            margin: 0;
             min-height: 100vh;
-            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow-x: hidden;
         }
-        
+
         .container {
+            width: 100%;
             max-width: 600px;
             margin: 0 auto;
+            padding: 0 8px;
         }
         
         .payment-card {
@@ -317,58 +320,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         /* Mobile First - Extra Small Devices (320px and up) */
-        @media (max-width: 375px) {
+        @media (max-width: 430px) {
             .container {
-                padding: 10px;
+                width: 100vw;
+                max-width: 100vw;
+                padding: 0 2px;
+                margin: 0;
             }
-            
             .payment-card {
                 border-radius: 6px;
             }
-            
             .payment-header {
-                padding: 15px;
-            }
-            
-            .payment-header h1 {
-                font-size: 20px;
-                margin-bottom: 8px;
-            }
-            
-            .payment-header p {
-                font-size: 12px;
-            }
-            
-            .payment-body {
-                padding: 15px;
-            }
-            
-            input, textarea {
-                font-size: 16px;
                 padding: 10px;
             }
-            
-            label {
-                font-size: 13px;
-                margin-bottom: 6px;
+            .payment-header h1 {
+                font-size: 17px;
             }
-            
-            .form-helper {
-                font-size: 11px;
+            .payment-body {
+                padding: 8px;
             }
-            
+            input, textarea {
+                font-size: 15px;
+                padding: 8px;
+            }
             .submit-btn {
-                padding: 12px;
+                padding: 10px;
                 font-size: 14px;
-            }
-            
-            .info-box {
-                padding: 12px;
-                font-size: 12px;
-            }
-            
-            .success-details {
-                padding: 15px;
             }
         }
         
@@ -399,6 +376,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        /* Standard Mobile Card Format (446px width) - All Mobile Devices */
+        @media (max-width: 768px) {
+            .container {
+                width: 446px;
+                max-width: 100%;
+                margin: 0 auto;
+            }
+        }
+        
         /* Regular Mobile Devices (426px - 768px): iPhones 12-14, Pixels, Galaxy */
         @media (min-width: 426px) and (max-width: 768px) {
             body {
@@ -406,7 +392,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             .container {
-                padding: 0;
+                padding: 0 12px;
             }
             
             .payment-card {
