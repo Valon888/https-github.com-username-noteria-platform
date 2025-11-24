@@ -1022,7 +1022,7 @@ if ($noter_id) {
         $titulli = trim($_POST['titulli']);
         $permbajtja = trim($_POST['permbajtja']);
         if ($titulli && $permbajtja) {
-            $stmt = $pdo->prepare("INSERT INTO lajme (titulli, permbajtja) VALUES (?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO lajme (titull, permbajtje) VALUES (?, ?)");
             $stmt->execute([$titulli, $permbajtja]);
             echo "<div class='success'>Lajmi u publikua!</div>";
         }
@@ -1036,10 +1036,10 @@ if ($noter_id) {
     </form>
     <?php } ?>
     <?php
-    $stmt = $pdo->query("SELECT * FROM lajme ORDER BY created_at DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT * FROM lajme ORDER BY data_publikimit DESC LIMIT 5");
     while ($lajm = $stmt->fetch()) {
-        echo "<div style='margin-bottom:14px;'><b>" . htmlspecialchars($lajm['titulli']) . "</b> <span style='color:#888;font-size:0.95em;'>(" . date('d.m.Y', strtotime($lajm['created_at'])) . ")</span><br>";
-        echo nl2br(htmlspecialchars($lajm['permbajtja'])) . "</div>";
+        echo "<div style='margin-bottom:14px;'><b>" . htmlspecialchars($lajm['titull']) . "</b> <span style='color:#888;font-size:0.95em;'>(" . date('d.m.Y', strtotime($lajm['data_publikimit'])) . ")</span><br>";
+        echo nl2br(htmlspecialchars($lajm['permbajtje'])) . "</div>";
     }
     ?>
 </div>
@@ -1053,7 +1053,7 @@ if ($noter_id) {
         $stmt = $pdo->query("SELECT DISTINCT u.id, u.emri, u.mbiemri, m.created_at
             FROM users u
             JOIN messages m ON u.id = m.sender_id OR u.id = m.receiver_id
-            WHERE u.roli != 'admin' AND u.zyra_id = $zyra_id
+            WHERE u.roli != 'admin'
             ORDER BY m.created_at DESC
             LIMIT 10");
         $klientet = $stmt->fetchAll();

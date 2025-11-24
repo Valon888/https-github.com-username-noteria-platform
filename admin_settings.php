@@ -28,9 +28,6 @@ if (!isset($_SESSION['admin_id'])) {
 header("Location: settings.php");
 exit();
 
-// Merr ID e adminit
-$adminId = $_SESSION['admin_id'];
-
 // Përcakto kategorinë aktive të cilësimeve
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'system';
 

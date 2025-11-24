@@ -1,8 +1,8 @@
 ﻿<?php
 // Konfigurimi i raportimit të gabimeve - PARA require_once
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/error.log');
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Fillimi i sigurt i sesionit - PARA require_once
 ini_set('session.cookie_httponly', 1);
@@ -64,15 +64,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             log_activity($pdo, $_SESSION['user_id'], 'Kyçje', 'Kyçje e suksesshme - Roli: ' . $_SESSION["roli"]);
             
             // Redirect bazuar në rol
+            error_log("DEBUG: Roli = " . $_SESSION["roli"]);
             if ($_SESSION["roli"] === "admin") {
+                error_log("DEBUG: Redirejtim në admin_dashboard.php");
                 header("Location: admin_dashboard.php");
+                exit();
             } elseif ($_SESSION["roli"] === "notary") {
+                error_log("DEBUG: Redirejtim në dashboard.php");
                 header("Location: dashboard.php");
+                exit();
             } else {
                 // user - sheh vetëm shërbimet dhe pagesa
+                error_log("DEBUG: Redirejtim në billing_dashboard.php");
                 header("Location: billing_dashboard.php");
+                exit();
             }
-            exit();
         } else {
             $error = "Email ose fjalëkalim i pasaktë!";
         }
