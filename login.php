@@ -20,6 +20,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'confidb.php';
+require_once 'ad_helper.php';
 
 // Regjenero ID pas kyçjes
 if (!isset($_SESSION['regenerated'])) {
@@ -483,8 +484,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
         }
     </style>
+    <?php echo getAdCSS(); ?>
 </head>
 <body>
+    <!-- ADS TOP -->
+    <div style="position: fixed; top: 10px; right: 10px; max-width: 300px; z-index: 999;">
+        <?php
+        $top_ads = getAdsForPlacement($pdo, 'login_top', 'all', 1);
+        foreach ($top_ads as $ad) {
+            echo displayAd($ad);
+            recordAdImpression($pdo, $ad['id'], 'login_top');
+        }
+        ?>
+    </div>
+    
     <div class="login-wrapper">
         <div class="login-container">
             <div class="logo-container">
@@ -544,6 +557,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
         </div>
     </div>
+    
+    <?php echo getAdJS(); ?>
 </body>
 </html>
 

@@ -36,6 +36,7 @@ if ($user_roli === 'user') {
 }
 
 require_once 'confidb.php';
+require_once 'ad_helper.php';
 if (!isset($pdo) || !$pdo) {
     die("<div style='color:red;text-align:center;margin-top:30px;'>Gabim në lidhjen me databazën. Ju lutemi kontaktoni administratorin.</div>");
 }
@@ -579,6 +580,24 @@ if ($noter_id) {
 </head>
 <body>
     <div class="container">
+        <!-- ADS SECTION -->
+        <div style="margin-bottom: 30px;">
+            <?php
+            $sidebar_ads = getAdsForPlacement($pdo, 'dashboard_sidebar', $_SESSION['roli'] ?? 'all', 2);
+            if (!empty($sidebar_ads)):
+                echo '<div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+                echo '<h3 style="margin-bottom: 15px; font-size: 14px; color: #999; text-transform: uppercase;">Reklamat e Partnerëve</h3>';
+                foreach ($sidebar_ads as $ad) {
+                    echo displayAd($ad, $_SESSION['user_id'] ?? null);
+                    recordAdImpression($pdo, $ad['id'], 'dashboard_sidebar', $_SESSION['user_id'] ?? null);
+                }
+                echo '</div>';
+            endif;
+            ?>
+        </div>
+        
+        <?php echo getAdCSS(); ?>
+        
         <h1>Mirë se erdhët në Panelin e Kontrollit</h1>
         <?php if ($roli !== 'admin'): ?>
             <div class="zyra-section">
