@@ -11,6 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'confidb.php';
+require_once 'pricing_helper.php';
 
 // Check if user is logged in and is an advertiser
 $advertiser = null;
@@ -255,6 +256,73 @@ if ($advertiser_id) {
         
         .badge.active { background: #d4edda; color: #155724; }
         .badge.draft { background: #fff3cd; color: #856404; }
+        
+        .pricing-intro {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .pricing-intro h2 {
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .pricing-intro p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .price-highlight {
+            font-size: 48px;
+            font-weight: bold;
+            color: #fff;
+            margin: 20px 0;
+        }
+        
+        .price-highlight .currency {
+            font-size: 32px;
+        }
+        
+        .price-highlight .period {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+        
+        .subscription-status {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .subscription-status.inactive {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        
+        .subscribe-btn {
+            background: white !important;
+            color: #667eea !important;
+            padding: 12px 24px !important;
+            font-weight: bold !important;
+            margin-top: 15px;
+        }
+        
+        .subscribe-btn:hover {
+            background: #f5f7fa !important;
+        }
+        
+        .badge.pending { background: #cfe2ff; color: #084298; }
     </style>
 </head>
 <body>
@@ -278,6 +346,23 @@ if ($advertiser_id) {
             <h2><i class="fas fa-briefcase"></i> Regjistro Biznesin Tënd</h2>
             <p style="margin-bottom: 20px; color: #666;">Krijoni një llogari reklamimi për të filluar</p>
             
+            <!-- PRICING INTRO -->
+            <div class="pricing-intro">
+                <h2><i class="fas fa-tag"></i> Paketa Reklamimi</h2>
+                <p>Zgjedh paketën e përshtatshme për biznesin tënd</p>
+                <div class="price-highlight">
+                    <span class="currency">€</span>300<span class="period">/muaj</span>
+                </div>
+                <p style="font-size: 14px; opacity: 0.95;">Paketa Professional - Rekomanduese për shumica e bizneseve</p>
+                <ul style="list-style: none; text-align: left; display: inline-block; margin: 15px 0;">
+                    <li><i class="fas fa-check"></i> Deri në 20 reklama aktive</li>
+                    <li><i class="fas fa-check"></i> Analytics avancuar në kohë reale</li>
+                    <li><i class="fas fa-check"></i> Përgatitje të pakufizuara</li>
+                    <li><i class="fas fa-check"></i> Mbështetje prioritare</li>
+                    <li><i class="fas fa-check"></i> Testim A/B</li>
+                </ul>
+            </div>
+            
             <form method="POST">
                 <input type="hidden" name="register_advertiser" value="1">
                 
@@ -296,11 +381,54 @@ if ($advertiser_id) {
                     <input type="url" name="logo_url" placeholder="https://www.shembull.com/logo.png">
                 </div>
                 
+                <div style="background: #f0f7ff; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #667eea;">
+                    <p style="color: #333; margin-bottom: 10px;"><strong>Kushtet e Paketës Professional:</strong></p>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 8px;">✓ Periudha e abonimit: 1 muaj</p>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 8px;">✓ Çmimi: <strong>€300/muaj</strong></p>
+                    <p style="font-size: 14px; color: #666;">✓ Rinovim automatik në fund të muajit</p>
+                </div>
+                
                 <button type="submit"><i class="fas fa-user-plus"></i> Regjistrohu si Biznes</button>
             </form>
         </div>
         
         <?php else: ?>
+        <!-- SUBSCRIPTION STATUS -->
+        <?php
+        $subscription = getSubscriptionStatus($pdo, $advertiser_id);
+        $is_active = isSubscriptionActive($pdo, $advertiser_id);
+        ?>
+        
+        <?php if ($is_active && $subscription): ?>
+        <div class="subscription-status">
+            <div>
+                <i class="fas fa-check-circle"></i> <strong>Abonimento Aktiv</strong>
+                <p style="margin-top: 5px; font-size: 14px; opacity: 0.9;">Paketë: <strong><?php echo htmlspecialchars($subscription['plan_name']); ?></strong> • Mbaron: <?php echo date('d.m.Y', strtotime($subscription['end_date'])); ?></p>
+            </div>
+            <span style="font-size: 20px; font-weight: bold;">€<?php echo number_format($subscription['monthly_price'], 0); ?>/muaj</span>
+        </div>
+        <?php elseif ($subscription): ?>
+        <div class="subscription-status inactive">
+            <div>
+                <i class="fas fa-exclamation-circle"></i> <strong>Abonimento i Përfunduar</strong>
+                <p style="margin-top: 5px; font-size: 14px; opacity: 0.9;">Reklama tuaja janë të fshehura. Rinovoni abonimin për të vazhduar.</p>
+            </div>
+            <button class="subscribe-btn" onclick="document.getElementById('pricing-section').scrollIntoView({behavior: 'smooth'});">
+                Rinovoni Tani
+            </button>
+        </div>
+        <?php else: ?>
+        <div class="subscription-status inactive">
+            <div>
+                <i class="fas fa-info-circle"></i> <strong>Nuk ka Abonimin</strong>
+                <p style="margin-top: 5px; font-size: 14px; opacity: 0.9;">Zgjedh një paketë më poshtë për të aktivizuar reklamat tuaja.</p>
+            </div>
+            <button class="subscribe-btn" onclick="document.getElementById('pricing-section').scrollIntoView({behavior: 'smooth'});">
+                Zgjedh Paketën
+            </button>
+        </div>
+        <?php endif; ?>
+        
         <!-- FEATURES -->
         <div class="feature-grid">
             <div class="feature">
@@ -402,6 +530,16 @@ if ($advertiser_id) {
             </table>
         </div>
         <?php endif; ?>
+        
+        <!-- PRICING PLANS SECTION -->
+        <div id="pricing-section" class="card">
+            <h2 style="text-align: center; margin-bottom: 30px;"><i class="fas fa-tag"></i> Zgjedh Paketën Tuaj</h2>
+            
+            <?php
+            echo getPricingCSS();
+            echo getPricingTableHTML('€');
+            ?>
+        </div>
         
         <?php endif; ?>
         
