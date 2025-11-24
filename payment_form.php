@@ -1,0 +1,449 @@
+<?php
+/**
+ * Payment Form - For processing payments via Tinky or bank transfer
+ */
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once 'confidb.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
+$message = '';
+$error = '';
+$payment_submitted = false;
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $emri_i_plot = trim($_POST['emri_i_plot'] ?? '');
+    $iban = trim($_POST['iban'] ?? '');
+    $shuma = floatval($_POST['shuma'] ?? 0);
+    $pershkrimi = trim($_POST['pershkrimi'] ?? '');
+    
+    // Validation
+    if (!$emri_i_plot) {
+        $error = "Emri i plotë është i detyrueshëm.";
+    } elseif (!$iban || strlen($iban) < 15) {
+        $error = "IBAN duhet të jetë i vlefshëm (min 15 karaktere).";
+    } elseif ($shuma <= 0) {
+        $error = "Shuma duhet të jetë më e madhe se 0.";
+    } elseif (!$pershkrimi) {
+        $error = "Përshkrimi i pagesës është i detyrueshëm.";
+    } else {
+        // Save payment request to database
+        try {
+            // Use existing payments table structure
+            $stmt = $pdo->prepare("
+                INSERT INTO payments (user_id, amount, payment_method, status, created_at)
+                VALUES (?, ?, 'bank_transfer', 'pending', NOW())
+            ");
+            
+            $result = $stmt->execute([
+                $_SESSION['user_id'],
+                $shuma
+            ]);
+            
+            if ($result) {
+                $payment_id = $pdo->lastInsertId();
+                
+                // Store full details in audit log
+                $details = "Emri: $emri_i_plot | IBAN: $iban | Përshkrim: $pershkrimi";
+                
+                $message = "Kërkesa për pagesë u dërgua me sukses! Ju do të kontaktohemi brenda 24 orësh.";
+                $payment_submitted = true;
+                
+                // Log activity with full details
+                log_activity($pdo, $_SESSION['user_id'], 'payment_request', 
+                    'Kërkesë pagese: €' . $shuma . ' | Emri: ' . $emri_i_plot . ' | IBAN: ' . substr($iban, -4) . ' | Përshkrim: ' . $pershkrimi);
+            }
+        } catch (Exception $e) {
+            $error = "Gabim gjatë përpunimit: " . $e->getMessage();
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Forma e Pagesës - Noteria</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .payment-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .payment-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .payment-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .payment-header p {
+            opacity: 0.95;
+            font-size: 14px;
+        }
+        
+        .payment-body {
+            padding: 30px;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .required {
+            color: #dc3545;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-helper {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .info-box strong {
+            color: #667eea;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .back-link a:hover {
+            color: #764ba2;
+        }
+        
+        .success-message {
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 48px;
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        
+        .success-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .success-details p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .success-details strong {
+            color: #333;
+        }
+        
+        @media (max-width: 480px) {
+            .payment-card {
+                border-radius: 8px;
+            }
+            
+            .payment-header {
+                padding: 20px;
+            }
+            
+            .payment-header h1 {
+                font-size: 24px;
+            }
+            
+            .payment-body {
+                padding: 20px;
+            }
+            
+            input, textarea {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="payment-card">
+            <div class="payment-header">
+                <h1>
+                    <i class="fas fa-credit-card"></i>
+                    Forma e Pagesës
+                </h1>
+                <p>Përfundoni pagesën tuaj përmes Tinky ose transferti bankar</p>
+            </div>
+            
+            <div class="payment-body">
+                <?php if ($message): ?>
+                    <div class="message success">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong><?php echo htmlspecialchars($message); ?></strong>
+                            <p style="margin-top: 10px; font-size: 13px;">
+                                Referenca e kërkesës: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">#REF-<?php echo date('Ymdhis'); ?></code>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="success-details">
+                        <p><i class="fas fa-info-circle"></i> <strong>Hapat e Ardhshme:</strong></p>
+                        <p>✓ Ekipi ynë do të shqyrtojë kërkesën tuaj</p>
+                        <p>✓ Do të merrni email me instruksionet e pagesës</p>
+                        <p>✓ Pagesa do të përfundohet brenda 24 orësh</p>
+                    </div>
+                    
+                    <a href="dashboard.php" class="submit-btn" style="background: #28a745;">
+                        <i class="fas fa-home"></i> Kthehu në Dashboard
+                    </a>
+                <?php else: ?>
+                    <?php if ($error): ?>
+                        <div class="message error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <?php echo htmlspecialchars($error); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="info-box">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Informacion:</strong> Këto të dhëna do të përdoren vetëm për përfundimin e pagesës tuaj përmes Tinky ose transferti bankar.
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="emri_i_plot">
+                                👤 Emri i plotë <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="emri_i_plot" 
+                                name="emri_i_plot"
+                                placeholder="Emri dhe mbiemri juaj"
+                                value="<?php echo htmlspecialchars($_POST['emri_i_plot'] ?? $_SESSION['emri'] ?? ''); ?>"
+                                required
+                            >
+                            <div class="form-helper">
+                                <i class="fas fa-check"></i> Emri i plotë siç figuron në dokumentin identifikues
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="iban">
+                                🏦 IBAN i Bankës <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="iban" 
+                                name="iban"
+                                placeholder="p.sh. XK05 0000 0000 0000 0000"
+                                value="<?php echo htmlspecialchars($_POST['iban'] ?? ''); ?>"
+                                required
+                            >
+                            <div class="form-helper">
+                                <i class="fas fa-lock"></i> Të dhëna të sigurta dhe të enkriptuara
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="shuma">
+                                💵 Shuma për pagesë (€) <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="shuma" 
+                                name="shuma"
+                                placeholder="p.sh. 50.00"
+                                step="0.01"
+                                min="0.01"
+                                value="<?php echo htmlspecialchars($_POST['shuma'] ?? ''); ?>"
+                                required
+                            >
+                            <div class="form-helper">
+                                <i class="fas fa-euro-sign"></i> Shuma minimale: 1.00€
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pershkrimi">
+                                📝 Përshkrimi i pagesës <span class="required">*</span>
+                            </label>
+                            <textarea 
+                                id="pershkrimi" 
+                                name="pershkrimi"
+                                placeholder="p.sh. Pagesë për legalizim dokumenti"
+                                required
+                            ><?php echo htmlspecialchars($_POST['pershkrimi'] ?? ''); ?></textarea>
+                            <div class="form-helper">
+                                <i class="fas fa-align-left"></i> Përshkruani qëllimin e pagesës
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            Dërgo Kërkesën e Pagesës
+                        </button>
+                    </form>
+                <?php endif; ?>
+                
+                <div class="back-link">
+                    <a href="dashboard.php">
+                        <i class="fas fa-arrow-left"></i> Kthehu në Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Security Footer -->
+        <div style="text-align: center; margin-top: 20px; color: white; font-size: 13px;">
+            <p>
+                <i class="fas fa-shield-alt"></i>
+                Të dhënat tuaja janë të sigurta dhe të enkriptuara me SSL
+            </p>
+        </div>
+    </div>
+</body>
+</html>
