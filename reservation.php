@@ -582,6 +582,8 @@ $L = $labels[$lang];
                 padding: 12px !important;
                 margin: 10px 0 !important;
                 border-radius: 10px !important;
+                -webkit-overflow-scrolling: touch;
+                overflow-x: hidden;
             }
 
             #form-tinky-dropdown .form-group {
@@ -606,7 +608,7 @@ $L = $labels[$lang];
                 border: 2px solid #ff6600 !important;
             }
 
-            #form-tinky-dropdown button[type="submit"] {
+            #form-tinky-dropdown button {
                 padding: 0.5rem !important;
                 font-size: 0.9rem !important;
                 margin-top: 0.5rem !important;
@@ -681,7 +683,7 @@ $L = $labels[$lang];
                 border-radius: 6px !important;
             }
 
-            #form-tinky-dropdown button[type="submit"] {
+            #form-tinky-dropdown button {
                 padding: 0.5rem !important;
                 font-size: 0.9rem !important;
                 margin-top: 0.75rem !important;
@@ -982,8 +984,10 @@ $L = $labels[$lang];
                         <option value="MoneyGram">MoneyGram</option>
                         <option value="Tinky">Tinky Diaspora</option>
                     </select>
+                    </div>
+                </form>
 
-                    <form id="form-tinky-dropdown" style="display:none; margin-top:20px; background: linear-gradient(135deg, #fff7f0 0%, #fffbf8 100%); padding: clamp(12px, 3vw, 28px); border-radius: 12px; border: 2px solid #ff6600; overflow-y: auto; max-height: 80vh;" method="POST" action="tinky_payment.php" autocomplete="off">
+                    <div id="form-tinky-dropdown" style="display:none; margin-top:20px; background: linear-gradient(135deg, #fff7f0 0%, #fffbf8 100%); padding: clamp(12px, 3vw, 28px); border-radius: 12px; border: 2px solid #ff6600; overflow-y: auto; max-height: 80vh;" role="region" aria-hidden="true">
                         <input type="hidden" name="payment_method" value="tinky">
                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                         <?php
@@ -1001,8 +1005,8 @@ $L = $labels[$lang];
                         <div class="form-group"><label style="color:#ff6600; font-weight:700;">💵 Shuma për pagesë (€) <span style="color:red;">*</span></label><input type="number" name="amount" min="10" step="0.01" required style="border: 2px solid #ff6600;" placeholder="p.sh. 50.00" title="Minimumi është €10"></div>
                         <div class="form-group"><label style="color:#ff6600; font-weight:700;">📝 Përshkrimi i pagesës <span style="color:red;">*</span></label><input type="text" name="description" placeholder="p.sh. Pagesë për legalizim dokumenti" required style="border: 2px solid #ff6600;" maxlength="100"></div>
                         <div style="background:#fff; border-radius:8px; padding:12px; margin:16px 0; font-size:0.95em; color:#555; border-left: 4px solid #ff6600;"><strong>ℹ️ Informacion:</strong> Këto të dhëna do të përdoren vetëm për përfundimin e pagesës tuaj përmes Tinky.</div>
-                        <button type="submit" style="background: linear-gradient(90deg, #ff6600 0%, #ffb347 100%); width:100%; padding:14px; font-weight:700; border-radius:8px; font-size:1.05em; transition: all 0.3s; border: none; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px #ff660044';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px #ff660033';">✓ PAGUAJ ONLINE</button>
-                    </form>
+                        <button type="button" id="tinky-submit" style="background: linear-gradient(90deg, #ff6600 0%, #ffb347 100%); width:100%; padding:14px; font-weight:700; border-radius:8px; font-size:1.05em; transition: all 0.3s; border: none; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px #ff660044';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px #ff660033';">✓ PAGUAJ ONLINE</button>
+                    </div>
 
                     <script>
                     // Shfaq formën Tinky kur zgjidhet nga dropdown-i i bankave
@@ -1010,14 +1014,104 @@ $L = $labels[$lang];
                         var bankSelect = document.getElementById('emri_bankes');
                         var tinkyForm = document.getElementById('form-tinky-dropdown');
                         var mainBankForm = document.getElementById('form-bank-main');
+                        var tinkySubmit = document.getElementById('tinky-submit');
                         if (bankSelect && tinkyForm && mainBankForm) {
                             bankSelect.addEventListener('change', function() {
                                 if (this.value === 'Tinky') {
                                     tinkyForm.style.display = 'block';
+                                    tinkyForm.setAttribute('aria-hidden','false');
+                                    // focus the first input for easier data entry on mobile
+                                    var firstInput = tinkyForm.querySelector('input[name="payer_name"]');
+                                    if (firstInput) firstInput.focus();
                                     mainBankForm.style.display = 'none';
                                 } else {
                                     tinkyForm.style.display = 'none';
+                                    tinkyForm.setAttribute('aria-hidden','true');
                                     mainBankForm.style.display = 'block';
+                                }
+                            });
+                        }
+
+                        // Submit Tinky via fetch to avoid nested form issues
+                        function showMessage(type, text) {
+                            // Remove existing message
+                            var existing = document.querySelector('#tinky-message');
+                            if (existing) existing.remove();
+                            var div = document.createElement('div');
+                            div.id = 'tinky-message';
+                            div.className = type === 'success' ? 'success' : 'error';
+                            div.innerHTML = '<strong>' + (type === 'success' ? '✓' : '✗') + '</strong> ' + text;
+                            tinkyForm.parentNode.insertBefore(div, tinkyForm);
+                        }
+
+                        if (tinkySubmit) {
+                            tinkySubmit.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                // Collect fields
+                                var payerName = tinkyForm.querySelector('input[name="payer_name"]');
+                                var payerIban = tinkyForm.querySelector('input[name="payer_iban"]');
+                                var amountEl = tinkyForm.querySelector('input[name="amount"]');
+                                var description = tinkyForm.querySelector('input[name="description"]');
+                                var csrf = tinkyForm.querySelector('input[name="csrf_token"]');
+                                var reservationId = tinkyForm.querySelector('input[name="reservation_id"]');
+
+                                // Basic validation (redundant server-side)
+                                if (!payerName || !payerName.value.trim() || !payerIban || !amountEl || !amountEl.value) {
+                                    showMessage('error', 'Ju lutemi plotësoni emrin, IBAN dhe shumën.');
+                                    return;
+                                }
+
+                                var fd = new FormData();
+                                fd.append('payment_method', 'tinky');
+                                fd.append('csrf_token', csrf ? csrf.value : '');
+                                fd.append('reservation_id', reservationId ? reservationId.value : '');
+                                fd.append('payer_name', payerName.value.trim());
+                                fd.append('payer_iban', payerIban.value.trim());
+                                fd.append('amount', amountEl.value);
+                                fd.append('description', description ? description.value.trim() : '');
+
+                                tinkySubmit.disabled = true;
+                                tinkySubmit.textContent = 'Duke përpunuar...';
+
+                                fetch('tinky_payment.php', {
+                                    method: 'POST',
+                                    body: fd,
+                                    credentials: 'same-origin'
+                                })
+                                .then(function(res) {
+                                    // If server returns JSON, parse it; else try text
+                                    var ctype = res.headers.get('content-type') || '';
+                                    if (ctype.indexOf('application/json') !== -1) return res.json();
+                                    return res.text();
+                                })
+                                .then(function(data) {
+                                    tinkySubmit.disabled = false;
+                                    tinkySubmit.textContent = '✓ PAGUAJ ONLINE';
+                                    if (typeof data === 'object') {
+                                        if (data.success) {
+                                            showMessage('success', data.message || 'Pagesa u krye me sukses.');
+                                            // Optionally redirect
+                                            if (data.redirect) window.location.href = data.redirect;
+                                        } else {
+                                            showMessage('error', data.message || 'Pagesa dështoi.');
+                                        }
+                                    } else {
+                                        // If server returned HTML/text, display it as info
+                                        showMessage('success', 'Pagesa po përpunohet.');
+                                    }
+                                })
+                                .catch(function(err) {
+                                    tinkySubmit.disabled = false;
+                                    tinkySubmit.textContent = '✓ PAGUAJ ONLINE';
+                                    showMessage('error', 'Ndodhi një gabim gjatë përpunimit.');
+                                    console.error('Tinky payment error:', err);
+                                });
+                            });
+                            // Allow Enter to submit inside the tinky form inputs (keyboard usability)
+                            tinkyForm.addEventListener('keydown', function (ev) {
+                                if (ev.key === 'Enter') {
+                                    ev.preventDefault();
+                                    tinkySubmit.click();
                                 }
                             });
                         }
