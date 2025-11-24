@@ -576,6 +576,48 @@ $L = $labels[$lang];
                 font-size: 0.9rem;
                 background: #f9fafb;
             }
+
+            /* Tinky form optimization for mobile */
+            #form-tinky-dropdown {
+                padding: 12px !important;
+                margin: 10px 0 !important;
+                border-radius: 10px !important;
+            }
+
+            #form-tinky-dropdown .form-group {
+                margin-bottom: 0.5rem !important;
+            }
+
+            #form-tinky-dropdown label {
+                font-size: 0.8rem !important;
+                margin-bottom: 0.15rem !important;
+                font-weight: 600 !important;
+            }
+
+            #form-tinky-dropdown input {
+                font-size: 15px !important;
+                padding: 0.4rem 0.5rem !important;
+                border-radius: 6px !important;
+                width: 100% !important;
+            }
+
+            #form-tinky-dropdown input[type="text"],
+            #form-tinky-dropdown input[type="number"] {
+                border: 2px solid #ff6600 !important;
+            }
+
+            #form-tinky-dropdown button[type="submit"] {
+                padding: 0.5rem !important;
+                font-size: 0.9rem !important;
+                margin-top: 0.5rem !important;
+                min-height: 40px !important;
+            }
+
+            #form-tinky-dropdown > div[style*="background:#fff"] {
+                padding: 10px !important;
+                font-size: 0.8rem !important;
+                margin: 12px 0 !important;
+            }
         }
 
         /* iPhone XR specific (414x896) */
@@ -614,6 +656,35 @@ $L = $labels[$lang];
             button[type="submit"] {
                 padding: 0.6rem;
                 font-size: 0.95rem;
+            }
+
+            /* Tinky form optimization for iPhone XR */
+            #form-tinky-dropdown {
+                padding: 12px !important;
+                margin-top: 10px !important;
+                border-radius: 10px !important;
+                max-height: 75vh !important;
+            }
+
+            #form-tinky-dropdown .form-group {
+                margin-bottom: 0.5rem !important;
+            }
+
+            #form-tinky-dropdown label {
+                font-size: 0.85rem !important;
+                margin-bottom: 0.2rem !important;
+            }
+
+            #form-tinky-dropdown input {
+                font-size: 15px !important;
+                padding: 0.4rem !important;
+                border-radius: 6px !important;
+            }
+
+            #form-tinky-dropdown button[type="submit"] {
+                padding: 0.5rem !important;
+                font-size: 0.9rem !important;
+                margin-top: 0.75rem !important;
             }
         }
 
@@ -912,7 +983,7 @@ $L = $labels[$lang];
                         <option value="Tinky">Tinky Diaspora</option>
                     </select>
 
-                    <form id="form-tinky-dropdown" style="display:none; margin-top:20px; background: linear-gradient(135deg, #fff7f0 0%, #fffbf8 100%); padding: 28px; border-radius: 12px; border: 2px solid #ff6600;" method="POST" action="tinky_payment.php" autocomplete="off">
+                    <form id="form-tinky-dropdown" style="display:none; margin-top:20px; background: linear-gradient(135deg, #fff7f0 0%, #fffbf8 100%); padding: clamp(12px, 3vw, 28px); border-radius: 12px; border: 2px solid #ff6600; overflow-y: auto; max-height: 80vh;" method="POST" action="tinky_payment.php" autocomplete="off">
                         <input type="hidden" name="payment_method" value="tinky">
                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                         <?php
