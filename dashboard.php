@@ -1199,9 +1199,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message_admin'],
     <script>
 document.addEventListener('DOMContentLoaded', function() {
     const zyraSelect = document.getElementById('zyra_id');
+    if (!zyraSelect) return;
+    
     const dateInput = document.getElementById('date');
     const timeInput = document.getElementById('time');
     const form = zyraSelect.closest('form');
+    
+    if (!form) return;
+    
     let infoDiv = document.createElement('div');
     infoDiv.id = 'slot-status';
     infoDiv.style.marginTop = '8px';
@@ -1259,18 +1264,20 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
     }, $calendar_terminet)); ?>;
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        locale: 'sq',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        events: events,
-        height: 550
-    });
-    calendar.render();
+    if (typeof FullCalendar !== 'undefined' && calendarEl) {
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'sq',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: events,
+            height: 550
+        });
+        calendar.render();
+    }
 });
 </script>
 <!-- Vendos këtu kodin e tawk.to -->
