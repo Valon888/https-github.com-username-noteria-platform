@@ -84,11 +84,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 }
-
-function log_activity($pdo, $user_id, $action, $details = '') {
-    $stmt = $pdo->prepare("INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)");
-    $stmt->execute([$user_id, $action, $details]);
-}
 ?>
 <!DOCTYPE html>
 <html lang="sq">
