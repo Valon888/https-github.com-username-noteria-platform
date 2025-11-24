@@ -440,6 +440,137 @@ $L = $labels[$lang];
         }
 
         /* Responsive */
+        @media (max-width: 414px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                width: 100vw;
+                max-width: 100vw;
+                padding: 0.5rem;
+                margin: 0;
+            }
+
+            .header {
+                padding: clamp(1rem, 3vw, 1.5rem);
+                margin-bottom: 1rem;
+                border-radius: 6px;
+            }
+
+            .header h1 {
+                font-size: clamp(1.25rem, 4vw, 1.75rem);
+                margin-bottom: 0.25rem;
+            }
+
+            .header p {
+                font-size: clamp(0.8rem, 2vw, 0.95rem);
+            }
+
+            .content {
+                padding: 0.75rem;
+                border-radius: 6px;
+            }
+
+            h2, h3 {
+                margin-top: 1rem;
+                margin-bottom: 0.75rem;
+            }
+
+            h2 {
+                font-size: clamp(1.1rem, 3vw, 1.5rem);
+            }
+
+            h3 {
+                font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+            }
+
+            label {
+                font-size: clamp(0.8rem, 2vw, 0.9rem);
+                margin-bottom: 0.25rem;
+            }
+
+            input, select {
+                padding: 0.5rem;
+                font-size: 15px;
+                border-radius: 6px;
+            }
+
+            button[type="submit"],
+            .button-primary {
+                padding: 0.6rem;
+                font-size: clamp(0.8rem, 2vw, 0.95rem);
+                border-radius: 8px;
+            }
+
+            .form-group {
+                margin-bottom: 0.75rem;
+            }
+
+            .success, .error, .info {
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+                font-size: clamp(0.8rem, 2vw, 0.95rem);
+            }
+
+            table {
+                font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+                margin-top: 0.75rem;
+            }
+
+            th, td {
+                padding: clamp(0.5rem, 1vw, 0.75rem);
+            }
+
+            .section {
+                margin-bottom: 1.5rem;
+            }
+
+            .no-data {
+                padding: 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* iPhone XR specific (414x896) */
+        @media (width: 414px) and (height: 896px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                width: 414px;
+                padding: 0.5rem;
+            }
+
+            .header {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header p {
+                font-size: 0.9rem;
+            }
+
+            .content {
+                padding: 0.75rem;
+            }
+
+            input, select {
+                font-size: 15px;
+                padding: 0.5rem;
+            }
+
+            button[type="submit"] {
+                padding: 0.6rem;
+                font-size: 0.95rem;
+            }
+        }
+
         @media (min-width: 480px) {
             .container {
                 padding: 1.5rem;
@@ -775,29 +906,6 @@ $L = $labels[$lang];
                         }
                     });
                     </script>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="llogaria">Numri i Llogarisë IBAN</label>
-                        <input type="text" name="llogaria" id="llogaria" maxlength="34" pattern="[A-Z0-9]{15,34}" required placeholder="p.sh. XK05 0000 0000 0000 0000">
-                    </div>
-                    <div class="form-group">
-                        <label for="shuma">Shuma (€)</label>
-                        <input type="number" name="shuma" id="shuma" min="1" step="0.01" required placeholder="0.00">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="pershkrimi">Përshkrimi i Pagesës</label>
-                    <input type="text" name="pershkrimi" id="pershkrimi" maxlength="100" required placeholder="p.sh. Pagesë për legalizim dokumenti">
-                </div>
-                
-                <button type="submit">Paguaj Online</button>
-            </form>
-        </div>
-        
-        </div>
-    </div>
-</body>
-</html>
+                             </div>
+       </body>
+         </html>
