@@ -351,15 +351,14 @@ if ($advertiser_id) {
                 <h2><i class="fas fa-tag"></i> Paketa Reklamimi</h2>
                 <p>Zgjedh paketën e përshtatshme për biznesin tënd</p>
                 <div class="price-highlight">
-                    <span class="currency">€</span>300<span class="period">/muaj</span>
+                    <span class="currency">€</span>100<span class="period">/muaj</span>
                 </div>
-                <p style="font-size: 14px; opacity: 0.95;">Paketa Professional - Rekomanduese për shumica e bizneseve</p>
+                <p style="font-size: 14px; opacity: 0.95;">Pakon Entry-Level - Për bizneset e vogla në fillimet e tyre</p>
                 <ul style="list-style: none; text-align: left; display: inline-block; margin: 15px 0;">
-                    <li><i class="fas fa-check"></i> Deri në 20 reklama aktive</li>
-                    <li><i class="fas fa-check"></i> Analytics avancuar në kohë reale</li>
-                    <li><i class="fas fa-check"></i> Përgatitje të pakufizuara</li>
-                    <li><i class="fas fa-check"></i> Mbështetje prioritare</li>
-                    <li><i class="fas fa-check"></i> Testim A/B</li>
+                    <li><i class="fas fa-check"></i> Deri në 2 reklama aktive</li>
+                    <li><i class="fas fa-check"></i> Analytics bazike</li>
+                    <li><i class="fas fa-check"></i> 5,000 përgatitje në muaj</li>
+                    <li><i class="fas fa-check"></i> Mbështetje përmes email</li>
                 </ul>
             </div>
             
@@ -382,9 +381,9 @@ if ($advertiser_id) {
                 </div>
                 
                 <div style="background: #f0f7ff; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #667eea;">
-                    <p style="color: #333; margin-bottom: 10px;"><strong>Kushtet e Paketës Professional:</strong></p>
+                    <p style="color: #333; margin-bottom: 10px;"><strong>Kushtet e Paketës Entry-Level:</strong></p>
                     <p style="font-size: 14px; color: #666; margin-bottom: 8px;">✓ Periudha e abonimit: 1 muaj</p>
-                    <p style="font-size: 14px; color: #666; margin-bottom: 8px;">✓ Çmimi: <strong>€300/muaj</strong></p>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 8px;">✓ Çmimi: <strong>€100/muaj</strong></p>
                     <p style="font-size: 14px; color: #666;">✓ Rinovim automatik në fund të muajit</p>
                 </div>
                 

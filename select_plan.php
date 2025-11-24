@@ -385,7 +385,7 @@ if ($advertiser_id) {
                 <thead>
                     <tr>
                         <th>Karakteristika</th>
-                        <th>Starter</th>
+                        <th>Entry-Level</th>
                         <th>Professional</th>
                         <th>Enterprise</th>
                     </tr>
@@ -393,19 +393,19 @@ if ($advertiser_id) {
                 <tbody>
                     <tr>
                         <td><strong>Çmim Mujor</strong></td>
-                        <td>€99</td>
+                        <td>€100</td>
                         <td>€300</td>
                         <td>€999</td>
                     </tr>
                     <tr>
                         <td>Reklama Aktive</td>
-                        <td>Deri 5</td>
+                        <td>Deri 2</td>
                         <td>Deri 20</td>
                         <td>Nuk ka limit</td>
                     </tr>
                     <tr>
                         <td>Përgatitjet e Reklamave</td>
-                        <td>10/muaj</td>
+                        <td>5,000/muaj</td>
                         <td>Nuk ka limit</td>
                         <td>Nuk ka limit</td>
                     </tr>

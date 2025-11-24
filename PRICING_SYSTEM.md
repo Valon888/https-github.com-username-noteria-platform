@@ -5,12 +5,12 @@ Complete pricing model implementation for the Noteria advertising platform with 
 
 ## Pricing Tiers
 
-### 1. **Starter Plan** - €99/month
-- Up to 5 active ads
+### 1. **Entry-Level Plan** - €100/month
+- Up to 2 active ads
 - Basic analytics
-- 10,000 impressions per month
-- Limited support
-- No A/B testing
+- 5,000 impressions per month
+- Email support
+- Perfect for new businesses just starting out
 
 ### 2. **Professional Plan** - €300/month ⭐ RECOMMENDED
 - Up to 20 active ads
@@ -192,11 +192,20 @@ Comprehensive testing script:
 
 ## Cost Calculation
 
-**Monthly Subscription Revenue:**
-- Professional Plan (Recommended): €300/advertiser/month
-- Example: 10 advertisers × €300 = €3,000/month
+**Monthly Subscription Revenue Examples:**
+- Entry-Level Plan: €100/advertiser/month (ideal for startups)
+- Professional Plan (Recommended): €300/advertiser/month (most popular)
+- Enterprise Plan: €999/advertiser/month (large enterprises)
+- Example: 5 Entry-Level + 10 Professional + 2 Enterprise = €500 + €3,000 + €1,998 = €5,498/month
 
-**Features Included at €300/month:**
+**Features at €100/month (Entry-Level):**
+- Up to 2 active ad campaigns
+- 5,000 daily impressions limit
+- Basic analytics dashboard
+- Email-based support
+- Perfect for testing and learning
+
+**Features at €300/month (Professional - Recommended):**
 - Up to 20 active ad campaigns
 - Unlimited daily impressions
 - Advanced real-time analytics
