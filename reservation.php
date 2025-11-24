@@ -439,39 +439,53 @@ $L = $labels[$lang];
             margin-bottom: 2rem;
         }
 
-        /* Responsive */
+        /* ========================================
+           MOBILE OPTIMIZATION
+           Responsive Design for Compact Devices
+           Samsung Galaxy S20 (412x915)
+           iPhone XR (414x896)
+           And Similar Mobile Phones
+           ======================================== */
+
         @media (max-width: 414px) {
+            /* Base mobile styling */
             body {
                 padding: 0;
             }
 
             .container {
-                width: 100vw;
-                max-width: 100vw;
+                width: 100%;
                 padding: 0.5rem;
                 margin: 0;
             }
 
+            /* Header section optimization */
             .header {
                 padding: clamp(1rem, 3vw, 1.5rem);
                 margin-bottom: 1rem;
                 border-radius: 6px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
             }
 
             .header h1 {
                 font-size: clamp(1.25rem, 4vw, 1.75rem);
                 margin-bottom: 0.25rem;
+                line-height: 1.3;
             }
 
             .header p {
                 font-size: clamp(0.8rem, 2vw, 0.95rem);
+                line-height: 1.4;
             }
 
+            /* Content area optimization */
             .content {
                 padding: 0.75rem;
                 border-radius: 6px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
             }
 
+            /* Typography optimization for mobile */
             h2, h3 {
                 margin-top: 1rem;
                 margin-bottom: 0.75rem;
@@ -479,40 +493,65 @@ $L = $labels[$lang];
 
             h2 {
                 font-size: clamp(1.1rem, 3vw, 1.5rem);
+                padding-bottom: 0.5rem;
             }
 
             h3 {
                 font-size: clamp(0.95rem, 2.5vw, 1.2rem);
             }
 
+            /* Form elements optimization */
             label {
                 font-size: clamp(0.8rem, 2vw, 0.9rem);
                 margin-bottom: 0.25rem;
+                font-weight: 600;
             }
 
             input, select {
                 padding: 0.5rem;
                 font-size: 15px;
                 border-radius: 6px;
+                border: 1px solid #cbd5e1;
+                background: #ffffff;
+                transition: all 0.2s ease;
             }
 
+            input:focus, select:focus {
+                border-color: #1e3a8a;
+                box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.1);
+            }
+
+            /* Button optimization for touch devices */
             button[type="submit"],
             .button-primary {
                 padding: 0.6rem;
                 font-size: clamp(0.8rem, 2vw, 0.95rem);
                 border-radius: 8px;
+                min-height: 44px;
+                font-weight: 600;
+                transition: all 0.2s ease;
             }
 
+            button[type="submit"]:active,
+            .button-primary:active {
+                transform: scale(0.98);
+            }
+
+            /* Form groups spacing */
             .form-group {
                 margin-bottom: 0.75rem;
             }
 
+            /* Message boxes optimization */
             .success, .error, .info {
                 padding: 0.75rem;
                 margin-bottom: 1rem;
                 font-size: clamp(0.8rem, 2vw, 0.95rem);
+                border-radius: 6px;
+                line-height: 1.5;
             }
 
+            /* Table optimization for mobile */
             table {
                 font-size: clamp(0.75rem, 1.5vw, 0.9rem);
                 margin-top: 0.75rem;
@@ -522,6 +561,12 @@ $L = $labels[$lang];
                 padding: clamp(0.5rem, 1vw, 0.75rem);
             }
 
+            th {
+                background: #f1f5f9;
+                color: #1e3a8a;
+            }
+
+            /* Section spacing */
             .section {
                 margin-bottom: 1.5rem;
             }
@@ -529,6 +574,7 @@ $L = $labels[$lang];
             .no-data {
                 padding: 1rem;
                 font-size: 0.9rem;
+                background: #f9fafb;
             }
         }
 
