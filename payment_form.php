@@ -527,6 +527,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 font-size: 16px;
             }
         }
+        
+        /* Android/Samsung Galaxy specific improvements */
+        @media (hover: none) and (pointer: coarse) and (platform: android) {
+            body {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            input, textarea {
+                background-color: #ffffff;
+                -webkit-user-select: text;
+                user-select: text;
+            }
+            
+            input[type="number"]::-webkit-outer-spin-button,
+            input[type="number"]::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                appearance: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -586,6 +606,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 name="emri_i_plot"
                                 placeholder="Emri dhe mbiemri juaj"
                                 value="<?php echo htmlspecialchars($_POST['emri_i_plot'] ?? $_SESSION['emri'] ?? ''); ?>"
+                                autocomplete="name"
                                 required
                             >
                             <div class="form-helper">
@@ -603,6 +624,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 name="iban"
                                 placeholder="p.sh. XK05 0000 0000 0000 0000"
                                 value="<?php echo htmlspecialchars($_POST['iban'] ?? ''); ?>"
+                                autocomplete="off"
+                                inputmode="text"
                                 required
                             >
                             <div class="form-helper">
@@ -622,6 +645,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 step="0.01"
                                 min="0.01"
                                 value="<?php echo htmlspecialchars($_POST['shuma'] ?? ''); ?>"
+                                autocomplete="off"
+                                inputmode="decimal"
                                 required
                             >
                             <div class="form-helper">
@@ -637,6 +662,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 id="pershkrimi" 
                                 name="pershkrimi"
                                 placeholder="p.sh. Pagesë për legalizim dokumenti"
+                                autocomplete="off"
                                 required
                             ><?php echo htmlspecialchars($_POST['pershkrimi'] ?? ''); ?></textarea>
                             <div class="form-helper">
