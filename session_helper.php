@@ -73,7 +73,11 @@ function checkSessionTimeout($timeout = 1800, $redirect_url = '/login.php') {
             $_SESSION['timeout_message'] = "Sesioni juaj ka skaduar. Ju lutemi kyçuni përsëri.";
             
             // Redirect
-            header("Location: " . $redirect_url . "?message=session_expired");
+            if (strpos($redirect_url, 'message=session_expired') === false) {
+                $separator = (strpos($redirect_url, '?') === false) ? '?' : '&';
+                $redirect_url .= $separator . "message=session_expired";
+            }
+            header("Location: " . $redirect_url);
             exit();
         }
     }
@@ -193,6 +197,49 @@ function getCurrentUserId() {
  */
 function getCurrentAdminId() {
     return $_SESSION['admin_id'] ?? null;
+}
+
+/**
+ * Generate CSRF token
+ * 
+ * @return string CSRF token
+ */
+function generateCsrfToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Validate CSRF token
+ * 
+ * @param string $token Token nga form
+ * @return bool True nëse valid, false otherwise
+ */
+function validateCsrfToken($token) {
+    if (empty($token) || empty($_SESSION['csrf_token'])) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * Get CSRF token HTML input field
+ * 
+ * @return string HTML input field
+ */
+function csrfField() {
+    $token = generateCsrfToken();
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token) . '">';
+}
+
+/**
+ * Regenerate CSRF token (pasi form submit)
+ */
+function regenerateCsrfToken() {
+    unset($_SESSION['csrf_token']);
+    generateCsrfToken();
 }
 
 ?>

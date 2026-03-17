@@ -1,18 +1,11 @@
-<?php
+﻿<?php
 // filepath: c:\xampp\htdocs\noteria\dashboard.php
 // Konfigurimi i raportimit të gabimeve
 ini_set('display_errors', 0); // Mos shfaq gabime në faqe
 ini_set('log_errors', 1);     // Log gabimet në server
 ini_set('error_log', __DIR__ . '/error.log'); // Ruaj gabimet në error.log në këtë folder
 
-// Fillimi i sigurt i sesionit - PARA require_once
-if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 1 : 0);
-    ini_set('session.use_strict_mode', 1);
-    session_start();
-}
-
+// Session configuration is handled in config.php via session_helper.php
 require_once 'config.php';
 
 // ==========================================
@@ -26,14 +19,9 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // ==========================================
-// KONTROLLO ROLIN - VETËM ADMIN DHE NOTARY
+// KONTROLLO AUTENTIFIKIMIN - LEJO TË GJITHË PËRDORUESIT
 // ==========================================
-$user_roli = $_SESSION['roli'] ?? 'user';
-if ($user_roli === 'user') {
-    // Përdoruesit e thjeshtë nuk mund të hyjnë në dashboard
-    header("Location: billing_dashboard.php");
-    exit();
-}
+// Të gjithë përdoruesit (admin, notary, user) mund të hyjnë në dashboard
 
 require_once 'confidb.php';
 require_once 'ad_helper.php';
@@ -71,9 +59,14 @@ if (empty($zyra_id)) {
     }
 }
 
-// Genero një CSRF token nëse nuk ekziston
+// Gjenero një CSRF token nëse nuk ekziston
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+function hasValidCsrfToken(): bool {
+    return isset($_POST['csrf_token'], $_SESSION['csrf_token'])
+        && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
 }
 
 // Merr shërbimet noteriale
@@ -107,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_notary'])) {
             $weekday = date('N', strtotime($date));
             if ($weekday == 6 || $weekday == 7) {
                 $error = "Zyrat noteriale nuk punojnë të Shtunën dhe të Dielën!";
+            } else {
                 $stmt = $pdo->prepare("SELECT id FROM reservations WHERE zyra_id = ? AND date = ? AND time = ?");
                 $stmt->execute([$zyra_id_selected, $date, $time]);
                 if ($stmt->rowCount() > 0) {
@@ -150,6 +144,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_notary'])) {
 
 // Shto faturën
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shto_fature'])) {
+    if (!hasValidCsrfToken()) {
+        $error = "Veprimi i paautorizuar (CSRF)!";
+    } else {
     $reservation_id = $_POST['reservation_id'];
     $zyra_id_fature = $_POST['zyra_id'];
     $nr_fatures = trim($_POST['nr_fatures']);
@@ -165,6 +162,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shto_fature'])) {
             error_log("Notice: fatura table doesn't exist - " . $e->getMessage());
         }
     }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['approve']) || isset($_POST['reject'])) && isset($_POST['reservation_id'])) {
+    if (!hasValidCsrfToken()) {
+        $error = "Veprimi i paautorizuar (CSRF)!";
+    } elseif ($roli === 'admin') {
+        $reservation_id = (int) $_POST['reservation_id'];
+        $newStatus = isset($_POST['approve']) ? 'aprovohet' : 'refuzohet';
+        try {
+            $stmt = $pdo->prepare("UPDATE reservations SET status = ? WHERE id = ?");
+            $stmt->execute([$newStatus, $reservation_id]);
+            $success = $newStatus === 'aprovohet' ? 'Termini u aprovua me sukses.' : 'Termini u refuzua me sukses.';
+        } catch (PDOException $e) {
+            error_log("Reservation status update error: " . $e->getMessage());
+            $error = "Nuk u përditësua statusi i terminit.";
+        }
+    } else {
+        $error = "Qasje e paautorizuar.";
+    }
 }
 
 // Merr terminet e rezervuara për zyrën e zgjedhur (për admin ose për përdorues të lidhur me zyrë)
@@ -178,7 +195,7 @@ function get_terminet_zyres($pdo, $zyra_id) {
     return $stmt->fetchAll();
 }
 
-// Merr terminet e rezervuara në zyrën tuaj për përdoruesin e zakonshëm
+// Merr terminet e rezervuara për përdoruesin aktual (nëse nuk është admin)
 if ($roli !== 'admin') {
     $stmt = $pdo->prepare("SELECT r.service, r.date, r.time, u.emri, u.mbiemri, u.email, r.document_path, r.status
         FROM reservations r
@@ -225,10 +242,14 @@ if (!empty($zyra_id)) {
 
 // Ruaj mesazhin nëse është dërguar
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message']) && !empty($_POST['message'])) {
+    if (!hasValidCsrfToken()) {
+        $error = "Veprimi i paautorizuar (CSRF)!";
+    } else {
     $msg = trim($_POST['message']);
     if ($noter_id && $msg) {
         $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
         $stmt->execute([$user_id, $noter_id, $msg]);
+    }
     }
 }
 
@@ -241,14 +262,58 @@ if ($noter_id) {
     $stmt->execute([$user_id, $noter_id, $noter_id, $user_id]);
     $messages = $stmt->fetchAll();
 }
+
+// Llogarit statistika të shpejta
+$total_terminet = 0;
+$total_dokumente = 0;
+$total_pagesa = 0;
+
+try {
+    // Llogarit terminet totale
+    if ($roli === 'admin') {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM reservations");
+    } else {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+    }
+    $total_terminet = $stmt->fetchColumn();
+
+    // Llogarit dokumentet e ngarkuara
+    if ($roli === 'admin') {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM reservations WHERE document_path IS NOT NULL AND document_path != ''");
+    } else {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE user_id = ? AND document_path IS NOT NULL AND document_path != ''");
+        $stmt->execute([$user_id]);
+    }
+    $total_dokumente = $stmt->fetchColumn();
+
+    // Llogarit faturat e lëshuara
+    if ($roli === 'admin') {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM faturat");
+    } else {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM faturat WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+    }
+    $total_pagesa = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    // Nëse tabela nuk ekziston, vendos vlera parazgjedhje
+    error_log("Statistics error: " . $e->getMessage());
+    $total_terminet = 0;
+    $total_dokumente = 0;
+    $total_pagesa = 0;
+}
 ?>
 <!DOCTYPE html>
 <html lang="sq">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, shrink-to-fit=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Paneli i Kontrollit | Noteria</title>
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet" as="style">
+    <noscript><link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet"></noscript>
     <style>
         body {
             font-family: 'Montserrat', Arial, sans-serif;
@@ -258,34 +323,53 @@ if ($noter_id) {
         }
         .container {
             max-width: 950px;
-            margin: 40px auto;
-            padding: 32px 24px;
-            border-radius: 18px;
+            margin: 4px auto;
+            padding: 16px;
+            border-radius: 12px;
             background: #fff;
             box-shadow: 0 8px 32px rgba(44,108,223,0.08);
+            box-sizing: border-box;
+            width: 100%;
+            min-height: calc(100vh - 80px);
         }
         h1 {
-            color: #2d6cdf;
-            margin-bottom: 28px;
-            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 16px;
+            font-size: clamp(1.5rem, 5vw, 2.2rem);
             font-weight: 700;
             text-align: center;
+            word-break: break-word;
+        }
+        h1::after {
+            content: 'ðŸ‡½ðŸ‡°';
+            display: block;
+            font-size: 1.5rem;
+            margin-top: 6px;
+        }
+        h2 {
+            font-size: clamp(1.1rem, 4vw, 1.5rem);
+        }
+        h3 {
+            font-size: clamp(0.95rem, 3vw, 1.2rem);
         }
         .logout {
-            margin-top: 24px;
-            text-align: right;
+            margin-top: 16px;
+            text-align: center;
         }
         .logout a {
-            color: #2d6cdf;
+            color: white;
             text-decoration: none;
             font-weight: 600;
-            padding: 8px 18px;
+            padding: 12px 16px;
             border-radius: 8px;
-            background: #e2eafc;
+            background: var(--primary);
             transition: background 0.2s;
+            display: inline-block;
+            min-height: 44px;
+            min-width: 120px;
         }
         .logout a:hover {
-            background: #c7d6f7;
+            background: #002266;
         }
         .admin-section, .zyra-section {
             background: #f8fafc;
@@ -340,61 +424,76 @@ if ($noter_id) {
         label {
             display: block;
             margin-bottom: 8px;
-            color: #2d6cdf;
+            color: var(--primary);
             font-weight: 600;
+            font-size: clamp(0.85rem, 2vw, 1rem);
         }
-        select, input[type="date"], input[type="time"], input[type="file"] {
+        select, input[type="date"], input[type="time"], input[type="file"], input[type="text"], input[type="email"], input[type="password"] {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #e2eafc;
+            padding: 12px;
+            border: 2px solid rgba(0, 51, 160, 0.15);
             border-radius: 8px;
-            font-size: 1rem;
-            background: #f8fafc;
-            transition: border-color 0.2s;
+            font-size: 16px;
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 44px;
         }
         select:focus, input:focus {
-            border-color: #2d6cdf;
+            border-color: var(--primary);
             outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
         }
         button {
-            background-color: #2d6cdf;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
-            padding: 12px 0;
+            padding: 14px 16px;
             border: none;
             border-radius: 8px;
             width: 100%;
-            font-size: 1.1rem;
+            font-size: clamp(0.95rem, 2vw, 1.1rem);
             font-weight: 700;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             margin-top: 8px;
+            min-height: 48px;
+            box-shadow: 0 4px 12px rgba(0, 51, 160, 0.2);
+        }
+        button:active {
+            transform: scale(0.98);
         }
         button:hover {
-            background-color: #184fa3;
+            background: linear-gradient(135deg, #002266 0%, var(--secondary) 100%);
+            box-shadow: 0 6px 20px rgba(0, 51, 160, 0.3);
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 18px;
-            background: #fff;
+            margin-top: 12px;
+            background: white;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(44,108,223,0.04);
+            box-shadow: 0 2px 8px rgba(0, 51, 160, 0.08);
+            font-size: clamp(0.85rem, 2vw, 1rem);
         }
         th, td {
-            padding: 10px;
+            padding: 12px 8px;
             text-align: left;
         }
         th {
-            background: #e2eafc;
-            color: #184fa3;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
             font-weight: 700;
+            position: sticky;
+            top: 0;
         }
         tr:nth-child(even) {
-            background: #f8fafc;
+            background: rgba(0, 51, 160, 0.02);
         }
         tr:hover td {
-            background: #e2eafc;
+            background: rgba(0, 51, 160, 0.04);
         }
         .no-data {
             color: #888;
@@ -402,9 +501,51 @@ if ($noter_id) {
             text-align: center;
         }
         @media (max-width: 700px) {
-            .container { padding: 8px; }
-            .admin-section, .zyra-section { padding: 10px; }
-            table, th, td { font-size: 0.95rem; }
+            .container { 
+                padding: 12px;
+                margin: 3px 0;
+                border-radius: 0;
+            }
+            body { font-size: 14px; }
+            h1 { font-size: 1.4rem; margin-bottom: 12px; }
+            h2 { font-size: 1.1rem; }
+            .admin-section, .zyra-section { padding: 12px; margin-bottom: 12px; }
+            table, th, td { font-size: 0.9rem; }
+            th, td { padding: 8px; }
+            select, input, textarea { font-size: 16px; min-height: 44px; padding: 10px; }
+            button { min-height: 48px; padding: 12px; }
+            .ads-sidebar { display: none !important; }
+            .logout { text-align: center; }
+            .logout a { display: block; width: 100%; }
+        }
+        
+        @media (max-width: 480px) {
+            html { font-size: 13px; }
+            body::before { height: 3px; }
+            .container { margin: 0; padding: 10px; border-radius: 0; min-height: 100vh; }
+            h1 { font-size: 1.3rem; margin: 8px 0; }
+            h1::after { font-size: 1.2rem; }
+            h2 { font-size: 1rem; margin: 8px 0; }
+            h3 { font-size: 0.95rem; }
+            button { padding: 12px 10px; font-size: 0.9rem; min-height: 48px; }
+            button:active { transform: scale(0.96); }
+            select, input[type=\"date\"], input[type=\"time\"], input[type=\"file\"], input[type=\"text\"], input[type=\"email\"], input[type=\"password\"] {
+                font-size: 16px; padding: 12px; min-height: 48px; border-radius: 6px;
+            }
+            textarea { font-size: 16px; padding: 12px; min-height: 100px; }
+            label { font-size: 0.85rem; margin-bottom: 6px; }
+            .admin-section, .zyra-section { padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+            .admin-section h2, .zyra-section h2 { font-size: 1rem; margin-bottom: 8px; }
+            .admin-section ul, .zyra-section ul { padding-left: 14px; }
+            .admin-section li, .zyra-section li { font-size: 0.85rem; margin-bottom: 4px; }
+            table { margin-top: 8px; font-size: 0.75rem; }
+            th, td { padding: 6px 4px; }
+            .ads-sidebar { display: none !important; }
+            .logout { margin-top: 10px; }
+            .logout a { display: block; width: 100%; min-height: 48px; padding: 12px; }
+            .form-group { margin-bottom: 12px; }
+            input[type=\"text\"], input[type=\"email\"], input[type=\"password\"] { font-size: 16px; }
+            .error, .success, .info { font-size: 0.8rem; padding: 8px; }
         }
 
         /* Stilet për seksionin e reklamave */
@@ -574,9 +715,9 @@ if ($noter_id) {
         }
     </style>
     <!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
-<!-- FullCalendar JS -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.12/main.min.css" rel="stylesheet">
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.12/main.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -598,10 +739,10 @@ if ($noter_id) {
         
         <?php echo getAdCSS(); ?>
         
-        <h1>Mirë se erdhët në Panelin e Kontrollit</h1>
+        <h1>Mirë se vini në Dashboard tuaj</h1>
         <?php if ($roli !== 'admin'): ?>
             <div class="zyra-section">
-                <h2>Informacioni i Zyrës Suaj</h2>
+                <h2>Informacioni i Zyrës suaj</h2>
                 <?php
                 if (empty($zyra_id)) {
                     echo "<div class='error'><strong>Përdoruesi nuk është i lidhur me asnjë zyrë. Kontaktoni administratorin!</strong></div>";
@@ -685,7 +826,7 @@ if ($noter_id) {
                     <div class="error"><?php echo htmlspecialchars($error); ?></div>
                 <?php endif; ?>
                 <form method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="book_notary" value="1">
                     <div class="form-group">
                         <label for="zyra_id">Zgjidh Zyrën Noteriale:</label>
@@ -714,7 +855,6 @@ if ($noter_id) {
                         <input type="time" name="time" id="time" required max="16:00">
                     </div>
                     <div class="form-group">
-                        <label for="document">Ngarko Dokumentin (PDF, JPG, JPEG, PNG):</label>
                         <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                     <button type="submit">Rezervo Terminin</button>
@@ -822,7 +962,7 @@ if ($noter_id) {
                     echo "<h3 style='margin-top:24px;'>Terminet për zyrën: " . htmlspecialchars($zyra['emri']) . " <span style='color:#184fa3;font-size:0.97em;'>(";
                     if ($qyteti) echo htmlspecialchars($qyteti) . ", ";
                     echo htmlspecialchars($shteti) . ")</span></h3>";
-                    $stmt = $pdo->prepare("SELECT r.service, r.date, r.time, u.emri, u.mbiemri, u.email, r.document_path
+                    $stmt = $pdo->prepare("SELECT r.id, r.service, r.date, r.time, r.status, u.emri, u.mbiemri, u.email, r.document_path
                         FROM reservations r
                         JOIN users u ON r.user_id = u.id
                         WHERE r.zyra_id = ?
@@ -856,10 +996,12 @@ if ($noter_id) {
 <td>";
                             if (isset($row['status']) && $row['status'] === 'në pritje') {
                                 echo '<form method="post" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') . '">
                                     <input type="hidden" name="reservation_id" value="' . htmlspecialchars($row['id']) . '">
                                     <button type="submit" name="approve" style="background:#388e3c;color:#fff;padding:4px 12px;border-radius:6px;">Aprovo</button>
                                 </form>
                                 <form method="post" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') . '">
                                     <input type="hidden" name="reservation_id" value="' . htmlspecialchars($row['id']) . '">
                                     <button type="submit" name="reject" style="background:#d32f2f;color:#fff;padding:4px 12px;border-radius:6px;">Refuzo</button>
                                 </form>';
@@ -899,6 +1041,7 @@ if ($noter_id) {
                             echo "<strong>Lënda:</strong> " . htmlspecialchars($termin['service']) . " | <strong>Data:</strong> " . htmlspecialchars($termin['date']) . " | <strong>Ora:</strong> " . htmlspecialchars($termin['time']);
                             // Forma për faturë fiskale
                             echo '<form method="POST" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                                <input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') . '">
                                 <input type="hidden" name="reservation_id" value="' . $termin['id'] . '">
                                 <input type="hidden" name="zyra_id" value="' . $zyra['id'] . '">
                                 <input type="text" name="nr_fatures" placeholder="Nr. Faturës" required style="width:110px;">
@@ -909,13 +1052,13 @@ if ($noter_id) {
                             </form>';
                             // Shfaq faturat ekzistuese për këtë lëndë
                             try {
-                                $stmtF = $pdo->prepare("SELECT * FROM fatura WHERE reservation_id = ?");
+                                $stmtF = $pdo->prepare("SELECT id, nr_fatures, data_fatures, shuma FROM fatura WHERE reservation_id = ?");
                                 $stmtF->execute([$termin['id']]);
                                 while ($f = $stmtF->fetch()) {
-                                    $pdf_url = "fatura_pdf.php?fatura_id=" . $f['id'];
+                                    $pdf_url = "fatura_pdf.php?fatura_id=" . urlencode($f['id']);
                                     echo "<div style='margin-top:4px; color:#184fa3; font-size:0.97em;'>";
                                     echo "Fatura: <b>" . htmlspecialchars($f['nr_fatures']) . "</b> | Data: " . htmlspecialchars($f['data_fatures']) . " | Shuma: <b>" . htmlspecialchars($f['shuma']) . "€</b> | ";
-                                    echo "<a href='$pdf_url' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shkarko Faturën (PDF)</a>";
+                                    echo "<a href='" . htmlspecialchars($pdf_url) . "' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shkarko Faturën (PDF)</a>";
                                     echo "</div>";
                                 }
                             } catch (PDOException $e) {
@@ -937,17 +1080,25 @@ if ($noter_id) {
             <div class="admin-section">
     <h2>Statistika të Shpejta</h2>
     <?php
-    $total_terminet = $pdo->query("SELECT COUNT(*) FROM reservations")->fetchColumn();
-    $total_dokumente = $pdo->query("SELECT COUNT(*) FROM reservations WHERE document_path IS NOT NULL AND document_path != ''")->fetchColumn();
-    
-    // Kontrollo nëse tabela fatura ekziston
+    // Statistika të shpejta për dashboard
+    $total_terminet = 0;
+    $total_dokumente = 0;
     $total_pagesa = 0;
+
     try {
-        $total_pagesa = $pdo->query("SELECT COUNT(*) FROM fatura")->fetchColumn();
-    } catch (PDOException $e) {
-        // Tabela fatura nuk ekziston - set në 0
-        error_log("Notice: fatura table doesn't exist - " . $e->getMessage());
-    }
+        $stmt = $pdo->query("SELECT COUNT(*) FROM reservations");
+        $total_terminet = $stmt->fetchColumn();
+    } catch (Exception $e) {}
+
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM documents");
+        $total_dokumente = $stmt->fetchColumn();
+    } catch (Exception $e) {}
+
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM fatura");
+        $total_pagesa = $stmt->fetchColumn();
+    } catch (Exception $e) {}
     ?>
     <ul>
         <li><b>Terminet totale:</b> <?php echo $total_terminet; ?></li>
@@ -962,7 +1113,7 @@ if ($noter_id) {
             <?php if ($notifications): ?>
                 <ul>
                     <?php foreach ($notifications as $notif): ?>
-                        <li style="margin-bottom:7px;<?php if(!$notif['is_read']) echo 'font-weight:bold;'; ?>">
+                        <li style="margin-bottom:7px;<?php echo (!$notif['is_read']) ? 'font-weight:bold;' : ''; ?>">
                             <?php echo htmlspecialchars($notif['message']); ?>
                             <span style="color:#888;font-size:0.95em;">(<?php echo date('d.m.Y H:i', strtotime($notif['created_at'])); ?>)</span>
                         </li>
@@ -981,7 +1132,7 @@ if ($noter_id) {
         </div>
 
         <!-- Buton për video thirrje -->
-        <button id="video-call-btn" style="background:#2d6cdf;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin-bottom:16px;cursor:pointer;">Nis Video Thirrje</button>
+        <button id="video-call-btn" style="background:var(--primary);color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin-bottom:16px;cursor:pointer;">Nis Video Thirrje</button>
         <div id="video-call-warning" style="display:none;margin-bottom:16px;background:#ffeaea;color:#d32f2f;padding:12px;border-radius:8px;font-weight:600;text-align:center;">
             Thirrja e juaj do të inxhizohet për përdorim të brendshëm dhe qëllime ligjore.
             <br>
@@ -993,7 +1144,7 @@ if ($noter_id) {
             <a href="logout.php">Shkyçu</a>
         </div>
 
-        <div class="zyra-section">
+    <div class="zyra-section">
     <h2>Profili Im</h2>
     <?php
     // Merr të dhënat aktuale
@@ -1001,26 +1152,31 @@ if ($noter_id) {
     $stmt->execute([$user_id]);
     $userData = $stmt->fetch();
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
-        $emri = trim($_POST['emri']);
-        $mbiemri = trim($_POST['mbiemri']);
-        $email = trim($_POST['email']);
-        $pass = $_POST['password'];
-        if ($emri && $mbiemri && $email) {
-            $sql = "UPDATE users SET emri=?, mbiemri=?, email=?";
-            $params = [$emri, $mbiemri, $email];
-            if (!empty($pass)) {
-                $sql .= ", password=?";
-                $params[] = password_hash($pass, PASSWORD_DEFAULT);
+        if (!hasValidCsrfToken()) {
+            echo "<div class='error'>Veprimi i paautorizuar (CSRF)!</div>";
+        } else {
+            $emri = trim($_POST['emri']);
+            $mbiemri = trim($_POST['mbiemri']);
+            $email = trim($_POST['email']);
+            $pass = $_POST['password'];
+            if ($emri && $mbiemri && $email) {
+                $sql = "UPDATE users SET emri=?, mbiemri=?, email=?";
+                $params = [$emri, $mbiemri, $email];
+                if (!empty($pass)) {
+                    $sql .= ", password=?";
+                    $params[] = password_hash($pass, PASSWORD_DEFAULT);
+                }
+                $sql .= " WHERE id=?";
+                $params[] = $user_id;
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                echo "<div class='success'>Profili u përditësua me sukses!</div>";
             }
-            $sql .= " WHERE id=?";
-            $params[] = $user_id;
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            echo "<div class='success'>Profili u përditësua me sukses!</div>";
         }
     }
     ?>
     <form method="post">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
         <label>Emri:</label>
         <input type="text" name="emri" value="<?php echo htmlspecialchars($userData['emri']); ?>" required>
         <label>Mbiemri:</label>
@@ -1028,7 +1184,7 @@ if ($noter_id) {
         <label>Email:</label>
         <input type="email" name="email" value="<?php echo htmlspecialchars($userData['email']); ?>" required>
         <label>Fjalëkalimi i ri (opsional):</label>
-        <input type="password" name="password" placeholder="Lëre bosh nëse nuk do ta ndryshosh">
+        <input type="password" name="password" placeholder="Lëre bosh nëse nuk do ta ndryshosh" autocomplete="current-password">
         <button type="submit" name="update_profile">Ruaj Ndryshimet</button>
     </form>
 </div>
@@ -1038,17 +1194,22 @@ if ($noter_id) {
     <?php
     // Vetëm admini mund të shtojë lajm
     if ($roli === 'admin' && isset($_POST['shto_lajm'])) {
-        $titulli = trim($_POST['titulli']);
-        $permbajtja = trim($_POST['permbajtja']);
-        if ($titulli && $permbajtja) {
-            $stmt = $pdo->prepare("INSERT INTO lajme (titull, permbajtje) VALUES (?, ?)");
-            $stmt->execute([$titulli, $permbajtja]);
-            echo "<div class='success'>Lajmi u publikua!</div>";
+        if (!hasValidCsrfToken()) {
+            echo "<div class='error'>Veprimi i paautorizuar (CSRF)!</div>";
+        } else {
+            $titulli = trim($_POST['titulli']);
+            $permbajtja = trim($_POST['permbajtja']);
+            if ($titulli && $permbajtja) {
+                $stmt = $pdo->prepare("INSERT INTO lajme (titull, permbajtje) VALUES (?, ?)");
+                $stmt->execute([$titulli, $permbajtja]);
+                echo "<div class='success'>Lajmi u publikua!</div>";
+            }
         }
     }
     if ($roli === 'admin') {
     ?>
     <form method="post" style="margin-bottom:18px;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
         <input type="text" name="titulli" placeholder="Titulli i lajmit" required>
         <textarea name="permbajtja" placeholder="Përmbajtja..." required style="width:100%;height:60px;"></textarea>
         <button type="submit" name="shto_lajm">Publiko Lajmin</button>
@@ -1108,6 +1269,7 @@ if ($noter_id) {
 
                 // Forma për dërgimin e mesazheve
                 echo "<form method='post' style='display:flex;gap:8px;margin-top:10px;'>";
+                echo "<input type='hidden' name='csrf_token' value='" . htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') . "'>";
                 echo "<input type='hidden' name='send_message_admin' value='1'>";
                 echo "<input type='hidden' name='klient_id' value='" . $klient_id . "'>";
                 echo "<input type='text' name='message_admin' placeholder='Shkruani përgjigjen tuaj...' style='flex:1;padding:8px;border-radius:6px;border:1px solid #e2eafc;' maxlength='500' required>";
@@ -1117,7 +1279,7 @@ if ($noter_id) {
                 echo "</div>";
             }
         } else {
-            echo "<div style='color:#888;'>Nuk ka klientë të rinj për të shfaqur.</div>";
+            echo "<div style='color:#888;'>Nuk ka klientë të rinj për t'u shfaqur.</div>";
         }
     } else {
         echo "<div class='error'>Qasja e pamjaftueshme. Vetëm admini mund të shohë këtë seksion.</div>";
@@ -1128,14 +1290,22 @@ if ($noter_id) {
 <?php
 // Ruaj mesazhin nga admini për klientin
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message_admin'], $_POST['klient_id'], $_POST['message_admin'])) {
-    $klient_id = intval($_POST['klient_id']);
-    $msg = trim($_POST['message_admin']);
-    if ($klient_id && $msg) {
-        $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
-        $stmt->execute([$user_id, $klient_id, $msg]);
-        // Rifresko faqen për të parë mesazhet e reja
-        header("Location: " . $_SERVER['PHP_SELF'] . "?klient_id=" . $klient_id);
-        exit();
+    if (!hasValidCsrfToken()) {
+        echo "<div class='error'>Veprimi i paautorizuar (CSRF)!</div>";
+    } else {
+        $klient_id = intval($_POST['klient_id']);
+        $msg = trim($_POST['message_admin']);
+        if ($klient_id && $msg) {
+            $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)");
+            $stmt->execute([$user_id, $klient_id, $msg]);
+            // Rifresko faqen për të parë mesazhet e reja
+            if (!headers_sent()) {
+                header("Location: " . $_SERVER['PHP_SELF'] . "?klient_id=" . $klient_id);
+            } else {
+                echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . "?klient_id=" . $klient_id . "';</script>";
+            }
+            exit();
+        }
     }
 }
 ?>
@@ -1174,7 +1344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message_admin'],
             <div class="ad-content">
                 <h4>Chat me Noterin & Mbështetje</h4>
                 <p>Komunikoni direkt me noterin ose merrni ndihmë nga ekipi ynë për çdo pyetje apo problem.</p>
-                <a href="#mesazhe" class="ad-btn">Kontakto tani</a>
+                <a href="chat.php" class="ad-btn">Kontakto tani</a>
             </div>
         </div>
         <div class="ad-card">
@@ -1182,13 +1352,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message_admin'],
             <div class="ad-content">
                 <h4>Lajme & Informacione Ligjore</h4>
                 <p>Qëndroni të informuar me lajmet dhe ndryshimet më të fundit ligjore, direkt nga platforma Noteria.</p>
-                <a href="#lajme" class="ad-btn">Lexo lajmet</a>
+                <a href="news.php" class="ad-btn">Lexo lajmet</a>
             </div>
         </div>
     </div>
 </div>
 <footer style="text-align:center; margin-top:40px; color:#888; font-size:1rem;">
-    <a href="Privacy_policy.php" style="color:#2d6cdf; text-decoration:underline;">Politika e Privatësisë</a>
+    <a href="Privatesia.php" style="color:#2d6cdf; text-decoration:underline;">Politika e Privatësisë</a>
 </footer>
 
 <!-- Seksioni i të drejtave autoriale dhe GitHub -->
@@ -1301,7 +1471,7 @@ s0.parentNode.insertBefore(s1,s0);
         Kryeni pagesat për shërbimet noteriale në mënyrë të sigurt përmes bankave të ndryshme, Paysera ose MoneyGram. Zgjidhni bankën tuaj të preferuar gjatë rezervimit të terminit dhe ndiqni udhëzimet për të përfunduar pagesën online.
     </p>
     <ul>
-        <li>Mbështet të gjitha bankat kryesore në Kosovë</li>
+        <li>Mbështetje për të gjitha bankat kryesore në Kosovë</li>
         <li>Pagesa të shpejta dhe të sigurta</li>
         <li>Konfirmim automatik i pagesës</li>
     </ul>
@@ -1384,7 +1554,7 @@ s0.parentNode.insertBefore(s1,s0);
             'created_at' => '2025-05-28'
         ],
         [
-            'titulli' => 'Siguria e të dhënave tuaja është prioriteti ynë',
+            'titulli' => 'Siguria e të dhënat tuaja është prioriteti ynë',
             'permbajtja' => 'Zbatojmë standardet më të larta të sigurisë për mbrojtjen e informacionit tuaj.',
             'created_at' => '2025-05-20'
         ],
@@ -1405,6 +1575,7 @@ s0.parentNode.insertBefore(s1,s0);
         echo nl2br(htmlspecialchars($lajm['permbajtja'])) . "</div>";
     }
     ?>
+</div>
 </div>
 </body>
 </html>

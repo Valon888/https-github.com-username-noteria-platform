@@ -57,11 +57,11 @@ initializeSecureSession();
 // Content Security Policy (CSP)
 // Kufizon burimet e JS, CSS, dhe të tjera
 $csp = "default-src 'self'; " .
-       "script-src 'self' 'unsafe-inline' https://chart.googleapis.com https://cdnjs.cloudflare.com; " .
-       "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; " .
+       "script-src 'self' 'unsafe-inline' https://chart.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " .
+       "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; " .
        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " .
        "img-src 'self' data: https:; " .
-       "connect-src 'self' https://api.paysera.com https://api.raiffeisen.al; " .
+       "connect-src 'self' https://api.paysera.com https://api.raiffeisen.al https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " .
        "frame-ancestors 'none'; " .
        "base-uri 'self'; " .
        "form-action 'self'";
@@ -214,3 +214,5 @@ function send2faSMS($to, $code) {
         return false;
     }
 }
+
+
