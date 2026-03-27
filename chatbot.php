@@ -1,8 +1,8 @@
+
 <?php
 // chatbot.php - Logjika bazë e chatbot-it shumëgjuhësh
-require_once 'db.php';
+// require_once 'db.php';
 
-// Përgjigje të paracaktuara në 3 gjuhë
 $responses = [
     'hello' => [
         'sq' => 'Përshëndetje! Si mund t’ju ndihmoj?',
@@ -16,6 +16,22 @@ $responses = [
     ],
     // Shto më shumë pyetje/përgjigje sipas nevojës
 ];
+
+// --- Shto API handler për POST ---
+if (php_sapi_name() !== 'cli') {
+    header('Content-Type: application/json');
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $msg = $input['message'] ?? '';
+        $lang = $input['lang'] ?? 'sq';
+        $response = getBotResponse($msg, $lang);
+        echo json_encode(['response' => $response]);
+        exit();
+    } else {
+        echo json_encode(['error' => 'Use POST with {"message": "...", "lang": "sq|en|sr"}']);
+        exit();
+    }
+}
 
 function getBotResponse($message, $lang = 'sq') {
     global $responses;

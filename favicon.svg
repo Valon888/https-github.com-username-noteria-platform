@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background gradient blue of Kosovo -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#002868;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1B5BB8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Blue background -->
+  <circle cx="50" cy="50" r="50" fill="url(#bgGrad)"/>
+  
+  <!-- Yellow star representing notary/legal -->
+  <path d="M 50 15 L 61 39 L 87 39 L 66 56 L 77 80 L 50 63 L 23 80 L 34 56 L 13 39 L 39 39 Z" fill="#FFD700"/>
+  
+  <!-- Legal scale symbol at bottom -->
+  <line x1="35" y1="75" x2="65" y2="75" stroke="#FFFFFF" stroke-width="2"/>
+  <circle cx="42" cy="68" r="3" fill="#FFFFFF"/>
+  <circle cx="58" cy="68" r="3" fill="#FFFFFF"/>
+</svg>

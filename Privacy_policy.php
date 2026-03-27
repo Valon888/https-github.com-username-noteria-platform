@@ -9,18 +9,24 @@ if (!isset($conn) || $conn->connect_error) {
     die("Lidhja me databazën dështoi: " . ($conn ? $conn->connect_error : 'Nuk u gjet lidhja'));
 }
 
-// Fetch privacy policy content from the database
+// Kontrollo nëse tabela ekziston, nëse jo, krijo atë
+$table_check = $conn->query("SHOW TABLES LIKE 'privacy_policy'");
+if ($table_check && $table_check->num_rows == 0) {
+    // Krijo tabelën nëse nuk ekziston
+    $create_table_sql = "CREATE TABLE privacy_policy (
+        id INT(11) AUTO_INCREMENT PRIMARY KEY,
+        content TEXT NOT NULL
+    )";
+    $conn->query($create_table_sql);
+}
+
+// Kontrollo nëse ka përmbajtje në tabelë, nëse jo, shto përmbajtje default
 $sql = "SELECT * FROM privacy_policy";
 $result = $conn->query($sql);
 
-// Store the privacy policy content in a variable
-$privacy_policy = "";
-if ($result && $result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $privacy_policy = $row["content"];
-} else {
-    // Përmbajtje default nëse nuk ka në databazë
-    $privacy_policy = <<<EOT
+if ($result && $result->num_rows == 0) {
+    // Shto përmbajtje default nëse tabela është e zbrazët
+    $default_content = <<<EOT
 <h2>Politika e Privatësisë</h2>
 <p>
 Platforma Noteria respekton privatësinë dhe sigurinë e të dhënave personale të përdoruesve të saj, në përputhje me Ligjin Nr. 06/L-082 për Mbrojtjen e të Dhënave Personale në Kosovë dhe Rregulloren Evropiane për Mbrojtjen e të Dhënave (GDPR).
@@ -47,13 +53,28 @@ Platforma Noteria respekton privatësinë dhe sigurinë e të dhënave personale
     <li><strong>10. Ndryshimet në politikën e privatësisë</strong><br>
     Çdo ndryshim në këtë politikë do të publikohet në këtë faqe. Përdoruesit inkurajohen ta rishikojnë rregullisht këtë politikë.</li>
     <li><strong>11. Kontakt</strong><br>
-    Për çdo pyetje ose kërkesë lidhur me të dhënat personale, mund të kontaktoni administratën e platformës në: [email ose kontakt zyrtar].</li>
+        Për çdo pyetje ose kërkesë lidhur me të dhënat personale, mund të kontaktoni administratën e platformës në: <br>
+        Email: [email ose kontakt zyrtar]<br>
+        
+        </li>
 </ul>
 <p>
 Duke përdorur këtë platformë, ju pranoni politikën tonë të privatësisë dhe rregullat për mbrojtjen e të dhënave personale sipas ligjit në Kosovë dhe GDPR.
 </p>
 EOT;
+
+    $insert_sql = "INSERT INTO privacy_policy (content) VALUES ('" . $conn->real_escape_string($default_content) . "')";
+    $conn->query($insert_sql);
 }
+
+// Tani, fetch përmbajtjen e politikës nga databaza
+$result = $conn->query($sql);
+$privacy_policy = "";
+if ($result && $result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $privacy_policy = $row["content"];
+}
+
 $conn->close();
 ?>
 <!DOCTYPE html>

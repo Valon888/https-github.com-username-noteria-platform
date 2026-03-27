@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Konfigurimi i raportimit të gabimeve
 ini_set('display_errors', 0); // Mos shfaq gabime në faqe
 ini_set('log_errors', 1);     // Log gabimet në server
@@ -259,7 +259,7 @@ $zyrat = $pdo->query("SELECT id, emri FROM zyrat ORDER BY emri")->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Raportet | Admin Panel | Noteria</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {

@@ -1,19 +1,31 @@
 <?php
-// Script to check the current structure of the zyrat table
-ini_set('display_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/error.log');
-require_once 'config.php';
+/**
+ * Tabla Structure Check
+ * Проверува точна структура на табелата advertisers
+ */
+
+require_once 'confidb.php';
 
 try {
-    echo "<h2>Structure of the 'zyrat' table:</h2>";
-    $stmt = $pdo->query("DESCRIBE zyrat");
-    echo "<pre>";
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        print_r($row);
+    $pdo = new PDO($dsn, $dbUser, $dbPass, $options);
+    
+    // Get table structure
+    $columns = $pdo->query("DESC advertisers")->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo "<pre style='background: #f4f4f4; padding: 20px; font-family: monospace;'>";
+    echo "📊 СТРУКТУРА НА ТАБЕЛА: advertisers\n";
+    echo str_repeat("=", 100) . "\n\n";
+    
+    foreach ($columns as $col) {
+        echo "✓ " . str_pad($col['Field'], 25) . " | " . str_pad($col['Type'], 20) . " | " . str_pad($col['Null'], 5) . " | " . str_pad($col['Key'], 5) . " | " . $col['Extra'] . "\n";
     }
-    echo "</pre>";
+    
+    echo "\n" . str_repeat("=", 100) . "\n";
+    echo "JSON FORMAT:\n";
+    echo json_encode($columns, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    echo "\n</pre>";
+    
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    echo "❌ Error: " . $e->getMessage();
 }
 ?>

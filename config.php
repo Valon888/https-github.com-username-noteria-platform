@@ -47,8 +47,11 @@ ini_set('error_log', __DIR__ . '/error.log');
 // ==========================================
 // LOAD SESSION HELPER
 // ==========================================
-require_once __DIR__ . '/session_helper.php';
-initializeSecureSession();
+// Only initialize if session not already started
+if (session_status() === PHP_SESSION_NONE) {
+    require_once __DIR__ . '/session_helper.php';
+    initializeSecureSession();
+}
 
 // ==========================================
 // SET SECURITY HEADERS
@@ -215,4 +218,4 @@ function send2faSMS($to, $code) {
     }
 }
 
-
+define('MCP_SECRET_TOKEN', 'vendos_nje_token_te_forte_ketu');

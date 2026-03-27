@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noteria — Verifikimi i Identitetit</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: #252a38;
+    --accent: #3d7fff;
+    --accent2: #00d4aa;
+    --success: #10b981;
+    --danger: #ef4444;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --gold: #c9a84c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Instrument Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    background-image:
+      radial-gradient(ellipse at 15% 0%, rgba(61,127,255,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 100%, rgba(0,212,170,0.06) 0%, transparent 50%);
+  }
+  .header {
+    width: 100%; max-width: 760px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; }
+  .secure-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--accent2); letter-spacing: 0.06em; font-weight: 500; }
+  .secure-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .steps { width: 100%; max-width: 760px; display: flex; align-items: center; margin-bottom: 28px; }
+  .step { display: flex; align-items: center; gap: 10px; }
+  .step-num { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); transition: all 0.3s; flex-shrink: 0; }
+  .step.active .step-num { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 16px rgba(61,127,255,0.3); }
+  .step.done .step-num { background: var(--success); border-color: var(--success); color: white; }
+  .step-label { font-size: 12px; color: var(--muted); font-weight: 400; white-space: nowrap; }
+  .step.active .step-label { color: var(--text); }
+  .step.done .step-label { color: var(--success); }
+  .step-line { flex: 1; height: 1px; background: var(--border); margin: 0 12px; transition: background 0.3s; }
+  .step-line.done { background: var(--success); }
+  .card { width: 100%; max-width: 760px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .card-header { padding: 24px 28px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .card-sub { font-size: 13px; color: var(--muted); font-weight: 300; }
+  .step-counter { font-size: 12px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+  .card-body { padding: 28px; }
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; font-weight: 500; }
+  input, select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; font-family: 'Instrument Sans', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.2s; }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  .doc-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+  .doc-type { border: 1.5px solid var(--border); border-radius: 10px; padding: 16px 12px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .doc-type:hover { border-color: var(--accent); background: rgba(61,127,255,0.05); }
+  .doc-type.selected { border-color: var(--accent); background: rgba(61,127,255,0.1); }
+  .doc-type .icon { font-size: 28px; margin-bottom: 8px; }
+  .doc-type .doc-name { font-size: 12.5px; color: var(--text); font-weight: 500; }
+  .doc-type .doc-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .upload-zone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; margin-bottom: 16px; }
+  .upload-zone:hover { border-color: var(--accent); background: rgba(61,127,255,0.04); }
+  .upload-zone.has-file { border-color: var(--success); background: rgba(16,185,129,0.05); border-style: solid; }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; padding: 0; border: none; background: transparent; }
+  .upload-icon { font-size: 36px; margin-bottom: 12px; }
+  .upload-text { font-size: 14px; color: var(--text); font-weight: 500; margin-bottom: 4px; }
+  .upload-sub { font-size: 12px; color: var(--muted); }
+  .file-preview { display: none; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+  .file-preview.show { display: flex; }
+  .file-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; }
+  .file-info { flex: 1; }
+  .file-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .file-size { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .file-ok { color: var(--success); font-size: 18px; }
+  .camera-container { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; max-height: 320px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
+  #videoEl { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none; }
+  .camera-placeholder { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--muted); }
+  .camera-placeholder .cam-icon { font-size: 48px; }
+  .face-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; pointer-events: none; }
+  .face-overlay.show { display: flex; }
+  .face-guide { width: 160px; height: 200px; border: 2.5px solid var(--accent); border-radius: 50%; box-shadow: 0 0 0 3000px rgba(0,0,0,0.45); }
+  .liveness-status { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 20px; padding: 6px 16px; font-size: 12px; color: var(--text); white-space: nowrap; display: none; }
+  .liveness-status.show { display: block; }
+  #capturedCanvas { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: none; transform: scaleX(-1); }
+  .cam-controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .verify-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .verify-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; align-items: flex-start; gap: 12px; transition: all 0.4s; }
+  .verify-item.checking { border-color: var(--accent); }
+  .verify-item.ok { border-color: var(--success); background: rgba(16,185,129,0.05); }
+  .verify-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .verify-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .verify-desc { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; margin-top: 4px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-result { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; }
+  .ai-result.show { display: block; animation: fadeIn 0.4s ease; }
+  .ai-result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+  .ai-result-body { font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+  .ai-result-body strong { color: var(--text); font-weight: 500; }
+  .confidence-bar { height: 6px; background: var(--border); border-radius: 3px; margin: 12px 0 4px; overflow: hidden; }
+  .confidence-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 1.2s ease; }
+  .confidence-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 8px; border: none; font-family: 'Instrument Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #2d6ff0; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(61,127,255,0.3); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover { background: #059669; }
+  .actions { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid var(--border); margin-top: 8px; }
+  .success-screen { text-align: center; padding: 20px 0; }
+  .success-circle { width: 80px; height: 80px; border-radius: 50%; background: rgba(16,185,129,0.15); border: 2px solid var(--success); display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px; animation: scaleIn 0.4s ease; }
+  @keyframes scaleIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+  .success-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--success); }
+  .success-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+  .kyc-id { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 20px; font-family: 'Syne', sans-serif; font-size: 13px; color: var(--gold); letter-spacing: 0.1em; margin-bottom: 24px; }
+  .info-note { background: rgba(61,127,255,0.08); border: 1px solid rgba(61,127,255,0.2); border-radius: 8px; padding: 12px 16px; font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-top: 16px; text-align: left; }
+  .info-note strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">N O T E R I A</div>
+  <div class="secure-badge">LIDHJE E SIGURT · SSL 256-bit</div>
+</div>
+
+<div class="steps" id="stepsBar">
+  <div class="step active" id="s1"><div class="step-num" id="sn1">1</div><div class="step-label">Të dhënat</div></div>
+  <div class="step-line" id="l1"></div>
+  <div class="step" id="s2"><div class="step-num" id="sn2">2</div><div class="step-label">Dokumenti</div></div>
+  <div class="step-line" id="l2"></div>
+  <div class="step" id="s3"><div class="step-num" id="sn3">3</div><div class="step-label">Selfie</div></div>
+  <div class="step-line" id="l3"></div>
+  <div class="step" id="s4"><div class="step-num" id="sn4">4</div><div class="step-label">Verifikimi AI</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title" id="cardTitle">Të dhënat personale</div>
+      <div class="card-sub" id="cardSub">Plotësoni informacionet bazike për verifikim identiteti</div>
+    </div>
+    <div class="step-counter" id="stepCounter">Hapi 1 / 4</div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- Panel 1 -->
+    <div class="panel active" id="panel1">
+      <div class="form-grid">
+        <div class="form-group"><label>EMRI</label><input type="text" id="fname" placeholder="p.sh. Arben"></div>
+        <div class="form-group"><label>MBIEMRI</label><input type="text" id="lname" placeholder="p.sh. Krasniqi"></div>
+        <div class="form-group"><label>NUMRI PERSONAL (NID)</label><input type="text" id="nid" placeholder="10-shifror" maxlength="10"></div>
+        <div class="form-group"><label>DATA E LINDJES</label><input type="date" id="dob"></div>
+        <div class="form-group">
+          <label>SHËRBIMI NOTARIAL</label>
+          <select id="service">
+            <option value="">— Zgjidhni shërbimin —</option>
+            <option>Kontratë shitjeje</option>
+            <option>Prokurë e posaçme</option>
+            <option>Prokurë e përgjithshme</option>
+            <option>Testament</option>
+            <option>Vërtetim nënshkrimi</option>
+            <option>Legalizim dokumenti</option>
+          </select>
+        </div>
+        <div class="form-group"><label>TELEFONI</label><input type="tel" id="phone" placeholder="+383 4X XXX XXX"></div>
+        <div class="form-group full"><label>EMAIL</label><input type="email" id="email" placeholder="adresa@email.com"></div>
+      </div>
+      <div class="info-note"><strong>🔒 Privatësia juaj:</strong> Të dhënat ruhen të koduara dhe përdoren vetëm për verifikimin e identitetit para takimit notarial.</div>
+      <div class="actions"><span></span><button class="btn btn-primary" onclick="goTo(2)">Vazhdo →</button></div>
+    </div>
+
+    <!-- Panel 2 -->
+    <div class="panel" id="panel2">
+      <div class="doc-types">
+        <div class="doc-type selected" id="dt1" onclick="selectDoc(1)"><div class="icon">🪪</div><div class="doc-name">Letërnjoftim</div><div class="doc-sub">Kosovë</div></div>
+        <div class="doc-type" id="dt2" onclick="selectDoc(2)"><div class="icon">📘</div><div class="doc-name">Pasaportë</div><div class="doc-sub">Ndërkombëtare</div></div>
+        <div class="doc-type" id="dt3" onclick="selectDoc(3)"><div class="icon">🚗</div><div class="doc-name">Patent shoferi</div><div class="doc-sub">Dokument shtesë</div></div>
+      </div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="docFile" accept="image/*,.pdf" onchange="handleFileUpload(event)">
+        <div class="upload-icon">📤</div>
+        <div class="upload-text">Ngarko foton e dokumentit</div>
+        <div class="upload-sub">PNG, JPG ose PDF · Maks. 10MB</div>
+      </div>
+      <div class="file-preview" id="filePreview">
+        <img class="file-thumb" id="fileThumb" src="" alt="">
+        <div class="file-info"><div class="file-name" id="fileName">—</div><div class="file-size" id="fileSize">—</div></div>
+        <div class="file-ok">✓</div>
+      </div>
+      <div class="info-note"><strong>📋 Këshilla:</strong> Sigurohuni që dokumenti të jetë i qartë dhe pa reflektime. Të gjitha të dhënat duhet të jenë të lexueshme.</div>
+      <div class="actions">
+        <button class="btn btn-outline" onclick="goTo(1)">← Kthehu</button>
+        <button class="btn btn-primary" id="nextToSelfie" onclick="goTo(3)" disabled>Vazhdo →</button>
+      </div>
+    </div>
+
+    <!-- Panel 3 -->
+    <div class="panel" id="panel3">
+      <div class="camera-container" id="cameraBox">
+        <div class="camera-placeholder" id="camPlaceholder"><div class="cam-icon">📷</div><p>Kamera nuk është aktivizuar ende</p></div>
+        <video id="videoEl" autoplay playsinline></video>
+        <canvas id="capturedCanvas"></canvas>
+        <div class="face-overlay" id="faceOverlay"><div class="face-guide"></div></div>
+        <div class="liveness-status" id="livenessStatus">Duke analizuar...</div>
+      </div>
+      <div class="cam-controls">
+        <button class="btn btn-outline" id="startCamBtn" onclick="startCamera()">📷 Aktivizo kamerën</button>
+        <button class="btn btn-primary" id="captureBtn" onclick="capturePhoto()" disabled>✓ Kap foton</button>
+        <button class="btn btn-outline" id="retakeBtn" onclick="retakePhoto()" style="display:none">↺ Rifoto</button>
+      </div>
+      <div class="info-note"><strong>👤 Udhëzime:</strong> Vendosni fytyrën brenda kornizës · Dritë e mirë · Shikoni direkt kamerën · Mos mbani syza dielli</div>
+      <div class="actions">
+        <button class="btn btn-outline" onclick="stopCamera(); goTo(2)">← Kthehu</button>
+        <button class="btn btn-primary" id="nextToVerify" onclick="stopCamera(); goTo(4)" disabled>Vazhdo →</button>
+      </div>
+    </div>
+
+    <!-- Panel 4 -->
+    <div class="panel" id="panel4">
+      <div class="verify-grid">
+        <div class="verify-item" id="vi1"><div class="verify-icon">🪪</div><div><div class="verify-label">Autenticiteti i dokumentit</div><div class="verify-desc" id="vd1">Duke pritur...</div></div><div class="spinner" id="vs1"></div></div>
+        <div class="verify-item" id="vi2"><div class="verify-icon">👤</div><div><div class="verify-label">Njohja e fytyrës</div><div class="verify-desc" id="vd2">Duke pritur...</div></div><div class="spinner" id="vs2"></div></div>
+        <div class="verify-item" id="vi3"><div class="verify-icon">📋</div><div><div class="verify-label">Leximi i të dhënave (OCR)</div><div class="verify-desc" id="vd3">Duke pritur...</div></div><div class="spinner" id="vs3"></div></div>
+        <div class="verify-item" id="vi4"><div class="verify-icon">🔍</div><div><div class="verify-label">Kontrolli i listave</div><div class="verify-desc" id="vd4">Duke pritur...</div></div><div class="spinner" id="vs4"></div></div>
+      </div>
+      <div class="ai-result" id="aiResult">
+        <div class="ai-result-header"><span>🤖</span><span>Rezultati i Verifikimit AI</span></div>
+        <div class="ai-result-body" id="aiResultBody"></div>
+        <div class="confidence-bar"><div class="confidence-fill" id="confFill"></div></div>
+        <div class="confidence-label"><span>Besueshmëria e verifikimit</span><span id="confPct">0%</span></div>
+      </div>
+      <div class="actions" id="verifyActions" style="display:none">
+        <button class="btn btn-outline" onclick="restartKYC()">↺ Fillo sërish</button>
+        <button class="btn btn-success" onclick="showSuccess()">✓ Konfirmo & Dërgo</button>
+      </div>
+    </div>
+
+    <!-- Panel 5 -->
+    <div class="panel" id="panel5">
+      <div class="success-screen">
+        <div class="success-circle">✓</div>
+        <div class="success-title">Identiteti u Verifikua!</div>
+        <div class="success-sub">Verifikimi juaj u krye me sukses.<br>Noteri do të shqyrtojë dosjen para takimit.</div>
+        <div class="kyc-id" id="kycId">KYC-2026-XXXXX</div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-success" onclick="alert('Rezervimi u konfirmua! Do të merrni email konfirmimi.')">📅 Rezervo takim tani</button>
+          <button class="btn btn-outline" onclick="alert('Konfirmimi u shkarkua.')">⬇ Shkarko konfirmimin</button>
+        </div>
+        <div class="info-note"><strong>ℹ️ Hapat e ardhshëm:</strong> Dosja juaj KYC do t'i dërgohet noterit 24 orë para takimit. Ruani ID-në e verifikimit për referencë.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentStep = 1;
+let stream = null;
+let verifyStarted = false;
+
+const meta = {
+  1: ['Të dhënat personale','Plotësoni informacionet bazike për verifikim identiteti','Hapi 1 / 4'],
+  2: ['Skanimi i dokumentit','Ngarkoni foton e dokumentit tuaj të identifikimit','Hapi 2 / 4'],
+  3: ['Konfirmimi biometrik (Selfie)','Bëni një foto të fytyrës për krahasim me dokumentin','Hapi 3 / 4'],
+  4: ['Verifikimi me AI','Sistemi po analizon dokumentin dhe biometrikën tuaj','Hapi 4 / 4'],
+  5: ['Verifikimi i Plotë','Procesi i eKYC u krye me sukses','✓ Kompletuar']
+};
+
+function goTo(n) {
+  document.getElementById(`panel${currentStep}`).classList.remove('active');
+  document.getElementById(`panel${n}`).classList.add('active');
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`s${i}`);
+    el.classList.remove('active','done');
+    document.getElementById(`sn${i}`).textContent = i < n ? '✓' : i;
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  }
+  for (let i = 1; i <= 3; i++) document.getElementById(`l${i}`).classList.toggle('done', i < n);
+  if (meta[n]) {
+    document.getElementById('cardTitle').textContent = meta[n][0];
+    document.getElementById('cardSub').textContent = meta[n][1];
+    document.getElementById('stepCounter').textContent = meta[n][2];
+  }
+  currentStep = n;
+  if (n === 4 && !verifyStarted) { verifyStarted = true; runVerification(); }
+}
+
+function selectDoc(n) {
+  [1,2,3].forEach(i => document.getElementById(`dt${i}`).classList.remove('selected'));
+  document.getElementById(`dt${n}`).classList.add('selected');
+}
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1)+' KB';
+  if (file.type.startsWith('image/')) {
+    const r = new FileReader();
+    r.onload = ev => { document.getElementById('fileThumb').src = ev.target.result; };
+    r.readAsDataURL(file);
+  }
+  document.getElementById('filePreview').classList.add('show');
+  document.getElementById('uploadZone').classList.add('has-file');
+  document.getElementById('nextToSelfie').disabled = false;
+}
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    const v = document.getElementById('videoEl');
+    v.srcObject = stream; v.style.display = 'block';
+    document.getElementById('camPlaceholder').style.display = 'none';
+    document.getElementById('faceOverlay').classList.add('show');
+    document.getElementById('livenessStatus').classList.add('show');
+    document.getElementById('captureBtn').disabled = false;
+    document.getElementById('startCamBtn').disabled = true;
+    const msgs = ['Vendosni fytyrën në kornizë...','Fytyrë e zbuluar ✓','Duke kontrolluar liveness...','✓ Gati për foto!'];
+    let i = 0;
+    const iv = setInterval(() => { if (i < msgs.length) document.getElementById('livenessStatus').textContent = msgs[i++]; else clearInterval(iv); }, 1300);
+  } catch(e) { alert('Kamera nuk u gjet. Ju lutemi lejoni qasjen në kamerë.'); }
+}
+
+function capturePhoto() {
+  const v = document.getElementById('videoEl');
+  const c = document.getElementById('capturedCanvas');
+  c.width = v.videoWidth||640; c.height = v.videoHeight||480;
+  c.getContext('2d').drawImage(v,0,0);
+  v.style.display = 'none'; c.style.display = 'block';
+  document.getElementById('faceOverlay').classList.remove('show');
+  document.getElementById('livenessStatus').textContent = '✓ Foto u kap me sukses!';
+  document.getElementById('captureBtn').disabled = true;
+  document.getElementById('retakeBtn').style.display = 'inline-flex';
+  document.getElementById('nextToVerify').disabled = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+}
+
+function retakePhoto() {
+  document.getElementById('capturedCanvas').style.display = 'none';
+  document.getElementById('retakeBtn').style.display = 'none';
+  document.getElementById('nextToVerify').disabled = true;
+  startCamera();
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runVerification() {
+  const checks = [
+    [1,'Dokument autentik, pa shenja ndërhyrjeje'],
+    [2,'Fytyra përputhet me dokumentin (97.3%)'],
+    [3,'Emri, data e lindjes dhe NID u lexuan'],
+    [4,'Asnjë regjistrim negativ i gjetur'],
+  ];
+  for (const [id, pass] of checks) {
+    await delay(900);
+    document.getElementById(`vi${id}`).classList.add('checking');
+    document.getElementById(`vd${id}`).textContent = 'Duke analizuar...';
+    await delay(1100 + Math.random()*600);
+    const sp = document.getElementById(`vs${id}`);
+    if (sp) sp.remove();
+    document.getElementById(`vi${id}`).classList.replace('checking','ok');
+    document.getElementById(`vd${id}`).textContent = '✓ ' + pass;
+  }
+  await delay(500);
+  const fname = document.getElementById('fname').value || 'Klienti';
+  const lname = document.getElementById('lname').value || '';
+  const service = document.getElementById('service').value || 'shërbim notarial';
+  document.getElementById('aiResultBody').innerHTML = `<strong>${fname} ${lname}</strong> — identiteti juaj u verifikua me sukses nga sistemi AI i Noteria-s.<br><br>Dokumenti i paraqitur është <strong>autentik</strong> dhe të dhënat biometrike <strong>përputhen</strong> me foton. Jeni i autorizuar për <strong>${service}</strong>.<br><br>Dosja KYC do t'i dërgohet noterit 24 orë para takimit.`;
+  document.getElementById('aiResult').classList.add('show');
+  await delay(300);
+  document.getElementById('confFill').style.width = '96%';
+  document.getElementById('confPct').textContent = '96%';
+  document.getElementById('verifyActions').style.display = 'flex';
+}
+
+function showSuccess() {
+  goTo(5);
+  document.getElementById('kycId').textContent = 'KYC-2026-' + Math.floor(10000+Math.random()*90000);
+}
+
+function restartKYC() {
+  verifyStarted = false;
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById(`vi${i}`).className = 'verify-item';
+    document.getElementById(`vd${i}`).textContent = 'Duke pritur...';
+    const sp = document.createElement('div');
+    sp.className = 'spinner'; sp.id = `vs${i}`;
+    document.getElementById(`vi${i}`).appendChild(sp);
+  }
+  document.getElementById('aiResult').classList.remove('show');
+  document.getElementById('verifyActions').style.display = 'none';
+  goTo(1);
+}
+</script>
+</body>
+</html>

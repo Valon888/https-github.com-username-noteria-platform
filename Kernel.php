@@ -18,7 +18,7 @@ class SecurityHeaders
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=()');
         $response->headers->set(
             'Content-Security-Policy-Report-Only',
-            "default-src 'self'; script-src 'self' https://embed.tawk.to; frame-src https://meet.jit.si; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; report-uri /csp-report"
+            "default-src 'self'; script-src 'self'; frame-src https://meet.jit.si; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; report-uri /csp-report"
         );
 
         return $response;

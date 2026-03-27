@@ -1,0 +1,10 @@
+name = "e-noteria-worker"
+main = "src/index.js"
+compatibility_date = "2026-03-26"
+
+[vars]
+BACKEND_URL = "https://e-noteria.com"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "0d72a59e672e4ac9a6612d165304766c"

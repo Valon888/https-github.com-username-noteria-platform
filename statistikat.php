@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Kontrollojmë nëse sesioni është i hapur para se të fillojmë një të ri
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -6,7 +6,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Kontrollo nëse përdoruesi është i autentikuar dhe ka rolin admin
 if (!isset($_SESSION["auth_test"]) && !isset($_SESSION["admin_id"])) {
-    header("Location: test_login_easy.php");
+    header("Location: login.php");
     exit();
 }
 
@@ -109,19 +109,19 @@ try {
         
         // Shto disa të dhëna demo
         $paymentDemoData = [
-            [1, 'Agim Berisha', 45.00, 'card', 'completed', 'TR-12345', '2025-09-25 10:30:00'],
-            [2, 'Vjollca Krasniqi', 120.00, 'bank_transfer', 'completed', 'TR-12346', '2025-09-26 12:00:00'],
-            [3, 'Burim Hoxha', 30.00, 'cash', 'completed', 'TR-12347', '2025-09-26 14:30:00'],
-            [4, 'Drita Gashi', 100.00, 'card', 'pending', 'TR-12348', NULL],
-            [5, 'Fatmir Shala', 25.00, 'cash', 'completed', 'TR-12349', '2025-09-27 13:15:00'],
-            [6, 'Mimoza Rexhepi', 80.00, 'card', 'refunded', 'TR-12350', '2025-09-28 11:00:00'],
-            [7, 'Blerim Morina', 90.00, 'bank_transfer', 'completed', 'TR-12351', '2025-09-28 15:45:00'],
-            [8, 'Teuta Hyseni', 50.00, 'cash', 'pending', 'TR-12352', NULL],
-            [9, 'Arben Kelmendi', 75.00, 'card', 'completed', 'TR-12353', '2025-09-29 17:00:00'],
-            [10, 'Shpresa Ahmeti', 110.00, 'bank_transfer', 'pending', 'TR-12354', NULL]
+            [1, 45.00, 'card', 'completed', 'TR-12345'],
+            [2, 120.00, 'bank_transfer', 'completed', 'TR-12346'],
+            [3, 30.00, 'cash', 'completed', 'TR-12347'],
+            [4, 100.00, 'card', 'pending', 'TR-12348'],
+            [5, 25.00, 'cash', 'completed', 'TR-12349'],
+            [6, 80.00, 'card', 'refunded', 'TR-12350'],
+            [7, 90.00, 'bank_transfer', 'completed', 'TR-12351'],
+            [8, 50.00, 'cash', 'pending', 'TR-12352'],
+            [9, 75.00, 'card', 'completed', 'TR-12353'],
+            [10, 110.00, 'bank_transfer', 'pending', 'TR-12354']
         ];
         
-        $insertStmt = $pdo->prepare("INSERT INTO payments (reservation_id, client_name, amount, payment_method, status, transaction_id, payment_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $insertStmt = $pdo->prepare("INSERT INTO payments (reservation_id, amount, payment_method, status, transaction_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())");
         
         foreach ($paymentDemoData as $payment) {
             $insertStmt->execute($payment);
@@ -258,7 +258,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistikat - Noteria Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {

@@ -1,270 +1,561 @@
 <?php
-// Script to create both zyrat and punetoret tables from scratch
-ini_set('display_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/error.log');
-require_once 'config.php';
+/**
+ * Script për të ekzekutuar skemën e databazës dhe vendosur orarit
+ * 
+ * PËRDORIMI:
+ * 1. Hap në shfletues: http://localhost/noteria/setup_database.php
+ * 2. Kliko butonin për të ekzekutuar skemën dhe orarit
+ */
 
-$success_messages = [];
-$error_messages = [];
+session_start();
 
-try {
-    // Create or fix zyrat table
-    $pdo->exec("DROP TABLE IF EXISTS punetoret"); // Drop punetoret first due to foreign key
-    $pdo->exec("DROP TABLE IF EXISTS zyrat");
-    
-    $sql_zyrat = "CREATE TABLE `zyrat` (
-      `id` int(11) NOT NULL AUTO_INCREMENT,
-      `emri` varchar(255) NOT NULL,
-      `qyteti` varchar(100) NOT NULL,
-      `shteti` varchar(100) NOT NULL DEFAULT 'Kosova',
-      `email` varchar(255) NOT NULL,
-      `telefoni` varchar(20) NOT NULL,
-      `nr_fiskal` varchar(20) NOT NULL COMMENT 'Numri fiskal nga ATK',
-      `nr_biznesi` varchar(20) NOT NULL COMMENT 'Numri i biznesit nga ARBK',
-      `data_regjistrimit` date NOT NULL,
-      `lloji_biznesit` varchar(50) NOT NULL,
-      `adresa` varchar(255) NOT NULL,
-      `num_punetore` int(11) NOT NULL DEFAULT 1 COMMENT 'Numri i punëtorëve në zyrë',
-      `banka` varchar(100) NOT NULL,
-      `iban` varchar(34) NOT NULL,
-      `llogaria` varchar(20) NOT NULL,
-      `pagesa` decimal(10,2) NOT NULL,
-      `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-      `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-      `active` tinyint(1) NOT NULL DEFAULT 1,
-      PRIMARY KEY (`id`),
-      UNIQUE KEY `email` (`email`),
-      KEY `qyteti` (`qyteti`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
-    $pdo->exec($sql_zyrat);
-    $success_messages[] = "Tabela 'zyrat' u krijua me sukses me të gjitha kolonat e nevojshme.";
-    
-    // Create punetoret table
-    $sql_punetoret = "CREATE TABLE `punetoret` (
-      `id` int(11) NOT NULL AUTO_INCREMENT,
-      `zyra_id` int(11) NOT NULL,
-      `emri` varchar(100) NOT NULL,
-      `mbiemri` varchar(100) NOT NULL,
-      `email` varchar(255) NOT NULL,
-      `telefoni` varchar(20) DEFAULT NULL,
-      `pozita` varchar(50) NOT NULL,
-      `password` varchar(255) NOT NULL,
-      `active` tinyint(1) NOT NULL DEFAULT 1,
-      `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-      `last_login` timestamp NULL DEFAULT NULL,
-      PRIMARY KEY (`id`),
-      UNIQUE KEY `email` (`email`),
-      KEY `zyra_id` (`zyra_id`),
-      CONSTRAINT `punetoret_ibfk_1` FOREIGN KEY (`zyra_id`) REFERENCES `zyrat` (`id`) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
-    $pdo->exec($sql_punetoret);
-    $success_messages[] = "Tabela 'punetoret' u krijua me sukses me të gjitha kolonat e nevojshme.";
-    
-    // Create users table if it doesn't exist (for admin login)
-    $sql_users = "CREATE TABLE IF NOT EXISTS `users` (
-      `id` int(11) NOT NULL AUTO_INCREMENT,
-      `username` varchar(100) NOT NULL,
-      `email` varchar(255) NOT NULL,
-      `password` varchar(255) NOT NULL,
-      `role` enum('admin','user') NOT NULL DEFAULT 'user',
-      `zyra_id` int(11) DEFAULT NULL,
-      `active` tinyint(1) NOT NULL DEFAULT 1,
-      `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-      `last_login` timestamp NULL DEFAULT NULL,
-      PRIMARY KEY (`id`),
-      UNIQUE KEY `username` (`username`),
-      UNIQUE KEY `email` (`email`),
-      KEY `zyra_id` (`zyra_id`),
-      CONSTRAINT `users_ibfk_1` FOREIGN KEY (`zyra_id`) REFERENCES `zyrat` (`id`) ON DELETE SET NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
-    $pdo->exec($sql_users);
-    $success_messages[] = "Tabela 'users' u krijua me sukses (nëse nuk ekzistonte).";
-    
-    // Add an admin user if users table is empty
-    $stmt = $pdo->query("SELECT COUNT(*) FROM users");
-    $count = $stmt->fetchColumn();
-    
-    if ($count == 0) {
-        $admin_password = password_hash("admin123", PASSWORD_DEFAULT); // Default password, should be changed
-        $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'admin')");
-        $stmt->execute(["admin", "admin@noteria.com", $admin_password]);
-        $success_messages[] = "U krijua përdoruesi administrativ paraprakisht (username: admin, password: admin123). Ju lutemi ndryshoni fjalëkalimin menjëherë pas kyçjes!";
-    }
-    
-} catch (PDOException $e) {
-    $error_messages[] = "Gabim: " . $e->getMessage();
+// KONFIGURIMI I DATABAZËS
+$db_host = 'localhost';
+$db_username = 'root';  // Ndryshoje nëse është ndryshe
+$db_password = '';      // Ndryshoje nëse ka password
+$db_name = 'noteria';
+
+// Lidhu me MySQL
+$conn = new mysqli($db_host, $db_username, $db_password, $db_name);
+if ($conn->connect_error) {
+    die("Gabim në lidhjen me bazën e të dhënave: " . $conn->connect_error);
 }
+$conn->set_charset("utf8mb4");
+
+$action = $_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['action'] ?? null) : null;
+$message = '';
+$message_type = '';
+$schema_created = false;
+$schedules_created = false;
+$stats = [
+    'tables_created' => 0,
+    'employees_count' => 0,
+    'schedules_created' => 0
+];
+
+// ============================================
+// HAPI 1: EKZEKUTO SKEMËN
+// ============================================
+if ($action === 'create_schema') {
+    $schema_file = 'd:/Laragon/www/noteria/db/noteria_staff_schema.sql';
+    
+    if (file_exists($schema_file)) {
+        $sql_content = file_get_contents($schema_file);
+        
+        // Ndaj queryet me ; dhe ekzekuto çdo një
+        $queries = explode(';', $sql_content);
+        $error_count = 0;
+        $success_count = 0;
+        
+        foreach ($queries as $query) {
+            $query = trim($query);
+            if (!empty($query)) {
+                if (!$conn->query($query)) {
+                    // Disa errore mund të jenë në rregull (p.sh. DROP IF NOT EXISTS)
+                    if (strpos($conn->error, 'already exists') === false) {
+                        $error_count++;
+                    }
+                } else {
+                    $success_count++;
+                    $stats['tables_created']++;
+                }
+            }
+        }
+        
+        $message = "✓ Skema e databazës u ekzekutua! " . $success_count . " queries të suksesshëm.";
+        $message_type = 'success';
+        $schema_created = true;
+    } else {
+        $message = "✗ Dosja e skemës nuk u gjet: " . $schema_file;
+        $message_type = 'error';
+    }
+}
+
+// ============================================
+// HAPI 2: VENDOS ORARIT
+// ============================================
+if ($action === 'create_schedules' || ($action === 'create_schema' && $schema_created)) {
+    // Kontrollo nëse tabela punonjesit ekziston
+    $table_check = $conn->query("SHOW TABLES LIKE 'punonjesit'");
+    if (!$table_check || $table_check->num_rows == 0) {
+        $message = "✗ Tabela 'punonjesit' nuk ekziston. Duhet të ekzekutosh skemën fillimisht!";
+        $message_type = 'error';
+    } else {
+        // Numaro punonjesit
+        $result = $conn->query("SELECT COUNT(*) as count FROM `punonjesit` WHERE `statusi` = 'aktiv'");
+        if ($result) {
+            $row = $result->fetch_assoc();
+            $stats['employees_count'] = $row['count'];
+        }
+    }
+}
+    
+    // Deaktivizo orarit e vjetër
+    $conn->query("UPDATE `oraret` SET `aktiv` = 0 WHERE `data_mbarimit` IS NULL AND `data_fillimit` < '2026-03-19'");
+    
+    // Krijo orarit e reja
+    $insert_sql = "INSERT INTO `oraret` (
+        `punonjes_id`,
+        `data_fillimit`,
+        `hene_fillim`, `hene_mbarim`,
+        `marte_fillim`, `marte_mbarim`,
+        `merkure_fillim`, `merkure_mbarim`,
+        `enjte_fillim`, `enjte_mbarim`,
+        `premte_fillim`, `premte_mbarim`,
+        `shtune_fillim`, `shtune_mbarim`,
+        `diele_fillim`, `diele_mbarim`,
+        `pershkrimi`,
+        `krijuar_nga`,
+        `aktiv`
+    )
+    SELECT
+        `id`,
+        '2026-03-19',
+        '08:00:00', '16:00:00',
+        '08:00:00', '16:00:00',
+        '08:00:00', '16:00:00',
+        '08:00:00', '16:00:00',
+        '08:00:00', '16:00:00',
+        NULL, NULL,
+        NULL, NULL,
+        'Orari i rregullt 08:00-16:00 duke filluar pas Festa e Fitër Bajramit',
+        1,
+        1
+    FROM `punonjesit`
+    WHERE `statusi` = 'aktiv'
+    AND (`data_mbarimit` IS NULL OR `data_mbarimit` >= '2026-03-19')";
+    
+    if ($conn->query($insert_sql)) {
+        $stats['schedules_created'] = $conn->affected_rows;
+        $message = "✓ Orarit u vendosën me sukses për " . $stats['schedules_created'] . " punonjës!";
+        $message_type = 'success';
+        $schedules_created = true;
+    } else {
+        $message = "✗ Gabim gjatë vendosjes së orareve: " . $conn->error;
+        $message_type = 'error';
+    }
+}
+
+// ============================================
+// SHFAQ TABELAT E EKZISTUESE
+// ============================================
+$tables = [];
+$result = $conn->query("SHOW TABLES FROM `noteria`");
+if ($result) {
+    while ($row = $result->fetch_row()) {
+        $tables[] = $row[0];
+    }
+}
+
+// Shfaq orarit e vendosura
+$schedules = [];
+$table_check = $conn->query("SHOW TABLES LIKE 'oraret'");
+if ($table_check && $table_check->num_rows > 0) {
+    $result = $conn->query("SELECT 
+        p.id,
+        p.emri,
+        p.mbiemri,
+        o.data_fillimit,
+        TIME_FORMAT(o.hene_fillim, '%H:%i') as hene_fillim,
+        TIME_FORMAT(o.hene_mbarim, '%H:%i') as hene_mbarim,
+        o.aktiv
+    FROM `oraret` o
+    JOIN `punonjesit` p ON o.punonjes_id = p.id
+    WHERE o.data_fillimit = '2026-03-19'
+    AND o.aktiv = 1
+    ORDER BY p.emri, p.mbiemri
+    LIMIT 20");
+
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $schedules[] = $row;
+        }
+    }
+}
+
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="sq">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krijimi i Databazës | Noteria</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Konfigurimi i Sistemit - Noteria</title>
     <style>
-        :root {
-            --primary: #2d6cdf;
-            --primary-dark: #184fa3;
-            --primary-light: #e2eafc;
-            --success: #388e3c;
-            --success-light: #eafaf1;
-            --error: #d32f2f;
-            --error-light: #ffeaea;
-            --warning: #f57c00;
-            --warning-light: #fff3e0;
-            --dark: #333;
-            --white: #fff;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         body {
-            font-family: 'Montserrat', sans-serif;
-            line-height: 1.6;
-            background-color: #f5f7fa;
-            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
         }
         
         .container {
-            max-width: 800px;
-            margin: 40px auto;
-            background: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            padding: 30px;
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
         }
         
         h1 {
-            color: var(--primary-dark);
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+        
+        .subtitle {
+            color: #666;
             margin-bottom: 30px;
-            text-align: center;
+            font-size: 1.1em;
         }
         
-        .message {
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 5px;
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
         }
         
-        .success {
-            background-color: var(--success-light);
-            color: var(--success);
-            border-left: 5px solid var(--success);
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
         
-        .error {
-            background-color: var(--error-light);
-            color: var(--error);
-            border-left: 5px solid var(--error);
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         
-        .warning {
-            background-color: var(--warning-light);
-            color: var(--warning);
-            border-left: 5px solid var(--warning);
+        .alert.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
         
-        .message i {
-            margin-right: 10px;
+        .section {
+            margin-bottom: 40px;
         }
         
-        .message p {
-            margin: 5px 0;
+        .section h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
         }
         
-        .actions {
-            margin-top: 30px;
-            text-align: center;
+        .setup-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 16px;
         }
         
-        .btn {
-            display: inline-block;
-            background: var(--primary);
-            color: var(--white);
-            padding: 12px 25px;
-            border-radius: 5px;
-            text-decoration: none;
+        .setup-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .setup-step:last-child {
+            border-bottom: none;
+        }
+        
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
             font-weight: 600;
-            margin: 0 10px 10px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .step-description {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 14px 28px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
             transition: all 0.3s ease;
         }
         
-        .btn:hover {
-            background: var(--primary-dark);
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
         
-        .notes {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
+        .btn-success {
+            background: #28a745;
+            color: white;
         }
         
-        .notes h2 {
-            color: var(--primary-dark);
-            margin-top: 0;
-            font-size: 1.2rem;
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .status.complete {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .status.pending {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 20px;
+        }
+        
+        .info-box strong {
+            color: #1565c0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1><i class="fas fa-database"></i> Krijimi i Databazës së Plateformës</h1>
+        <h1>⚙️ Konfigurimi i Sistemit - Noteria</h1>
+        <p class="subtitle">Përgatitja e databazës dhe vendosja e orareve</p>
         
-        <?php if (!empty($success_messages)): ?>
-            <div class="message success">
-                <i class="fas fa-check-circle"></i>
-                <?php foreach ($success_messages as $msg): ?>
-                    <p><?php echo htmlspecialchars($msg); ?></p>
-                <?php endforeach; ?>
+        <?php if ($message): ?>
+            <div class="alert <?php echo $message_type; ?>">
+                <?php echo $message; ?>
             </div>
         <?php endif; ?>
         
-        <?php if (!empty($error_messages)): ?>
-            <div class="message error">
-                <i class="fas fa-exclamation-circle"></i>
-                <?php foreach ($error_messages as $msg): ?>
-                    <p><?php echo htmlspecialchars($msg); ?></p>
-                <?php endforeach; ?>
+        <!-- HAPI 1: SKEMA E DATABAZËS -->
+        <div class="section">
+            <h2>1️⃣ Skema e Databazës</h2>
+            
+            <div class="setup-card">
+                <div class="setup-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Krijoni Tabelat</div>
+                        <div class="step-description">Ekzekutoni skemat e databazës (zyra_noteriale, punonjesit, oraret, etj.)</div>
+                    </div>
+                    <div class="status <?php echo count($tables) > 0 ? 'complete' : 'pending'; ?>">
+                        <span><?php echo count($tables) > 0 ? '✓ Përfunduar' : '⏳ Në pritje'; ?></span>
+                    </div>
+                </div>
+            </div>
+            
+            <?php if (count($tables) > 0): ?>
+                <div class="alert info">
+                    ✓ Tabelat e mëposhtme ekzistojnë në bazën e të dhënave:
+                    <br><strong><?php echo implode(', ', array_slice($tables, 0, 5)); ?><?php echo count($tables) > 5 ? '... (+' . (count($tables) - 5) . ' më shumë)' : ''; ?></strong>
+                </div>
+            <?php else: ?>
+                <form method="POST" style="margin-top: 15px;">
+                    <input type="hidden" name="action" value="create_schema">
+                    <button type="submit" class="btn-primary">📊 Ekzekuto Skemën e Databazës</button>
+                </form>
+            <?php endif; ?>
+        </div>
+        
+        <!-- HAPI 2: VENDOSJA E ORAREVE -->
+        <div class="section">
+            <h2>2️⃣ Vendosja e Orareve</h2>
+            
+            <div class="setup-card">
+                <div class="setup-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Orarit e Punës 08:00-16:00</div>
+                        <div class="step-description">Data e fillimit: 19 Mars 2026 | Ditë pune: Hënë-Premte | Ditë pushimi: Shtunë-Diele</div>
+                    </div>
+                    <div class="status <?php echo $stats['schedules_created'] > 0 ? 'complete' : 'pending'; ?>">
+                        <span><?php echo $stats['schedules_created'] > 0 ? '✓ Përfunduar' : '⏳ Në pritje'; ?></span>
+                    </div>
+                </div>
+            </div>
+            
+            <?php if (count($tables) > 0): ?>
+                <?php if ($stats['schedules_created'] > 0): ?>
+                    <div class="alert success">
+                        ✓ Orarit u vendosën për <?php echo $stats['schedules_created']; ?> punonjës!
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-number"><?php echo $stats['schedules_created']; ?></div>
+                            <div class="stat-label">Punonjës me Orare</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number">08:00</div>
+                            <div class="stat-label">Fillim Dite</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number">16:00</div>
+                            <div class="stat-label">Përfundim Dite</div>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <form method="POST" style="margin-top: 15px;">
+                        <input type="hidden" name="action" value="create_schedules">
+                        <button type="submit" class="btn-success">🕐 Vendos Orarit Tani</button>
+                    </form>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+        
+        <!-- LISTA E ORAREVE -->
+        <?php if (!empty($schedules)): ?>
+            <div class="section">
+                <h2>✓ Orarit e Vendosura</h2>
+                <p style="color: #666; margin-bottom: 15px;">Shfaqen 20 punonjësi të parë me orarit të vendosura:</p>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Emri</th>
+                                <th>Data Fillimit</th>
+                                <th>Orari (Hënë-Premte)</th>
+                                <th>Statusi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($schedules as $schedule): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($schedule['emri'] . ' ' . $schedule['mbiemri']); ?></td>
+                                    <td><?php echo $schedule['data_fillimit']; ?></td>
+                                    <td><strong><?php echo $schedule['hene_fillim']; ?> - <?php echo $schedule['hene_mbarim']; ?></strong></td>
+                                    <td><span style="color: #28a745; font-weight: 600;">✓ Aktiv</span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         <?php endif; ?>
         
-        <div class="message warning">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p><strong>Kujdes:</strong> Ky script ka krijuar tabela të reja në databazë dhe ka fshirë të gjitha të dhënat e mëparshme të tabelave 'zyrat' dhe 'punetoret'. Nëse keni pasur të dhëna të rëndësishme, ju lutemi rivendosni databazën nga një kopje rezervë.</p>
-        </div>
-        
-        <div class="notes">
-            <h2>Informacion:</h2>
-            <p>Janë krijuar me sukses këto tabela:</p>
-            <ul>
-                <li><strong>zyrat</strong> - për të ruajtur të dhënat e zyrave noteriale</li>
-                <li><strong>punetoret</strong> - për të ruajtur të dhënat e punëtorëve të secilës zyrë</li>
-                <li><strong>users</strong> - për të ruajtur përdoruesit e sistemit (administratorët)</li>
-            </ul>
-            <p>Tani mund të vazhdoni me regjistrimin e zyrave noteriale dhe menaxhimin e punëtorëve.</p>
-        </div>
-        
-        <div class="actions">
-            <a href="index.php" class="btn">
-                <i class="fas fa-home"></i> Faqja Kryesore
-            </a>
-            <a href="login.php" class="btn">
-                <i class="fas fa-sign-in-alt"></i> Kyçu
-            </a>
-            <a href="zyrat_register.php" class="btn">
-                <i class="fas fa-building"></i> Regjistro Zyrë
-            </a>
-            <a href="dashboard.php" class="btn">
-                <i class="fas fa-tachometer-alt"></i> Dashboard
-            </a>
-        </div>
+        <!-- FINALIZIM -->
+        <?php if (count($tables) > 0 && $stats['schedules_created'] > 0): ?>
+            <div class="section">
+                <div class="alert success">
+                    <strong>🎉 Sistemi u konfigurua me sukses!</strong>
+                    <br>
+                    Të gjitha tabelat janë krijuar dhe orarit janë vendosur. Mund ta mbyllesh këtë faqe dhe të fillosh përdorjen e sistemit.
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </body>
 </html>

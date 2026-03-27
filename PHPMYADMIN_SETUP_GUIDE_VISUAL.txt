@@ -1,0 +1,196 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                  UDHËZIM PËR KONFIGURIMIN E SISTEMIT NOTERIA               ║
+║                         PËRMES PHPMYADMIN                                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📋 PËRMBAJTJE E UDHËZIMIT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Hyrja në phpMyAdmin
+2. Krijoi bazën e të dhënave
+3. Ekzekutoi SQL schemas
+4. Vendosja e orareve
+5. Verifikimi i rezultateve
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HAPI 1: HYRA NË PHPMYADMIN                                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. Aço shfletuesin (Firefox, Chrome, Edge, etj.)
+2. Shkruaj në address bar:
+   
+   http://localhost/phpmyadmin
+
+3. Nëse kërkohet login:
+   - Username: root
+   - Password: (lëre boshe)
+   - Kliko "Hyp"
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HAPI 2: KRIJO BAZËN E TË DHËNAVE (nëse nuk ekziston)                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+OPSIONI A: Automatik (Recommended)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Në panelin e majtë, gej "Bazat e të dhënave"
+2. Kliko "Krijo bazën e të dhënave"
+3. Shkruaj: noteria
+4. Encoding zgjedh: utf8mb4_unicode_ci
+5. Kliko butonin "Krijo"
+
+✓ Nëse shfaqet mesazhi "Database 'noteria' has been created successfully"
+  do të thotë se u krijua me sukses!
+
+OPSIONI B: Manual (Nëse Opsioni A nuk funksionon)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Kliko skedën "SQL" (në anën e sipërme)
+2. Kopjo këtë kod dhe pastezo:
+
+   CREATE DATABASE IF NOT EXISTS `noteria` 
+   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+3. Kliko "Execute"
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HAPI 3: EKZEKUTO SQL SCHEMAS                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. Në panelin e majtë, kliko "noteria" (rezalto bazën e të dhënave)
+
+2. Shko në skedën "SQL" (ose "Import" nëse dëshiron importin e file-it)
+
+3. Në editor-in SQL, KOPJO TË GJITHË kodin nga:
+   
+   📁 D:\Laragon\www\noteria\db\FULL_SETUP_PHPMYADMIN.sql
+   
+   (Hap dosjen, kopjo gjithçka me Ctrl+A, Ctrl+C)
+
+4. PASTEZO në phpMyAdmin SQL editor (Ctrl+V)
+
+5. Kliko "Execute" ose prit me Ctrl+Enter
+
+⏳ PRITSJA: Procesi mund të zgjasë 5-10 sekonda
+
+✓ SUKSESI: Do të shohësh mesazhe të gjelbra "Query executed successfully"
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HAPI 4: VERIFIKIMI I TABELAVE                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. Në panelin e majtë, shiko listën e tabelave nën "noteria"
+2. Duhet të shohësh këto tabela:
+
+   ✓ zyra_noteriale
+   ✓ punonjesit
+   ✓ oraret           ← REJA
+   ✓ hyrje_dalje
+   ✓ lejet
+   (+ të tjerë)
+
+3. KLIKO mbi "oraret" për të verifikuar datën 2026-03-19 me orare 08:00-16:00
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HAPI 5: TESTIMI I SISTEMIT                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Pas përfundimit të vendosjes: HAPA PËR TESTIMIN
+
+1. Aço dashboard-in: http://localhost/noteria/dashboard.php
+
+2. Shko në seksionin "Zgjidh Termin" ose "Booking Calendar"
+
+3. VERIFICO:
+   
+   ✓ Data 18 Mars 2026 (Festa e Fitër Bajramit) - ÇAKTIVIZUAR (gri)
+   ✓ Data 19 Mars 2026 - AKTIVE (i mund ta klikon)
+   ✓ Mesazhi "Festa e Fitër Bajramit" shfaqet sipër kalendarit
+   ✓ Orari i disponueshëm: 08:00 - 16:00
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HAPI 6: SHTIMI I PUNONJËSVE TË TESTIT (Opsionale)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Nëse dëshiron të testosh me të dhëna reale:
+
+1. Shko në skedën "SQL"
+
+2. Kopjo dhe pastezo këtë kod:
+
+   -- Krijo një zyrë test
+   INSERT INTO `zyra_noteriale` 
+   (`emri`, `adresa`, `qyteti`, `rrethi`, `kodi_postar`, `email`, `statusi`)
+   VALUES 
+   ('Zyra Noteriale Prishtinë', 'Rr. Nuk Adem Jashari', 'Prishtinë', 'Prishtinë', '10000', 'prishtine@noteria.com', 'aktive');
+
+   -- Krijo punonjës test
+   INSERT INTO `punonjesit` 
+   (`zyra_id`, `emri`, `mbiemri`, `email`, `pozicioni`, `data_fillimit`, `statusi`)
+   VALUES 
+   (1, 'Alban', 'Murati', 'alban.murati@noteria.com', 'Noterit A', '2024-01-01', 'aktiv'),
+   (1, 'Drita', 'Rama', 'drita.rama@noteria.com', 'Noterit B', '2024-01-01', 'aktiv');
+
+3. Kliko Execute
+
+4. Shfaq tabelën "oraret" dhe verifikua se u shtuan dy rreshta të reja për punonjësit
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ZGJIDHJA E PROBLEMEVE                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PROBLEMI: "Table 'noteria.oraret' doesn't exist"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✗ Do të thotë: Kërkesa SQL nuk mori të krijohet tabela
+
+ZGJIDHJA:
+1. Sigo që zyrën noteria SQL të ekzekutohet e plotë
+2. Verifikua se nuk ka gabime SQL
+3. Kontrollua se në panelin e majtë shfaqet tabela "oraret"
+4. Nëse jo, ekzekuto mbrapsht vetëm SQL për "oraret":
+
+   CREATE TABLE IF NOT EXISTS `oraret` (
+     `id` int(11) NOT NULL AUTO_INCREMENT,
+     `punonjes_id` int(11) NOT NULL,
+     -- ... më shumë kolonat ...
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+PROBLEMI: "0 rows affected" kur vendos orarit
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✗ Do të thotë: Nuk ka punonjës aktivë për vendosjen e orareve
+
+ZGJIDHJA:
+1. Herë të parë, duhet të shto punonjës në tabelën "punonjesit"
+2. Përdor SQL-in nga HAPI 6 më sipër
+3. Pas kësaj, përsërite komandën INSERT për orarit
+
+
+PROBLEMI: "Syntax error" në SQL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✗ Do të thotë: Ka gabim në kodën SQL
+
+ZGJIDHJA:
+1. Verifikua se kopjo PLOTË SQL-in (jo vetëm një pjesë)
+2. Sigurohu që nuk ka karaktere të shtuar gabimisht
+3. Kontrollua encoding-un (SELECT @@character_set_client;)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ PËRFUNDIM: NËSE TË GJITHA HAPAT U PËRFUNDUAN DENGAN SUKSES:
+
+1. ✓ Baza e të dhënave "noteria" ekziston
+2. ✓ Të gjitha tabelat janë krijuar
+3. ✓ Orarit janë vendosur për 19 Mars 2026
+4. ✓ Data 18 Mars (Festa e Fitër Bajramit) shfaqet si e mbyllur
+
+🎉 SISTEMI NOTERIA ËSHTË GATI PËR PËRDORIM!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,4 +1,4 @@
-
+﻿
 <?php
 // jobs.php - Menaxhimi i konkurseve për punësim dhe aplikimet
 ini_set('display_errors', 1);
@@ -96,7 +96,7 @@ $konkurset = $pdo->query("SELECT j.*, z.emri AS zyra_emri, z.qyteti FROM jobs j 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mundësi Punësimi | Noteria</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         body { font-family: 'Montserrat', sans-serif; background: #f8fafc; margin: 0; }
         .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(44,108,223,0.10); padding: 32px; }
@@ -223,3 +223,4 @@ $konkurset = $pdo->query("SELECT j.*, z.emri AS zyra_emri, z.qyteti FROM jobs j 
     </div>
 </body>
 </html>
+

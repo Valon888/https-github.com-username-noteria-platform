@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Noteria Settings Panel
  * 
@@ -11,6 +11,12 @@
  */
 
 require_once 'config.php';
+require_once 'session_helper.php';
+
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Kontrollo autorizimin
 session_start();
@@ -153,22 +159,27 @@ try {
     
     // Procesi i ruajtjes së cilësimeve
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
-        $category = $_POST['category'];
-        $updateStmt = $pdo->prepare("UPDATE settings SET setting_value = ?, updated_by = ? WHERE category = ? AND setting_key = ?");
-        
-        foreach ($_POST as $key => $value) {
-            // Ignoro çelësat speciale
-            if (in_array($key, ['save_settings', 'category'])) {
-                continue;
-            }
+        // Validate CSRF token
+        $csrf_token = $_POST['csrf_token'] ?? '';
+        if (empty($csrf_token) || !hash_equals($_SESSION['csrf_token'] ?? '', $csrf_token)) {
+            $error = "Veprimi i paautorizuar (CSRF)!";
+        } else {
+            $category = $_POST['category'];
+            $updateStmt = $pdo->prepare("UPDATE settings SET setting_value = ?, updated_by = ? WHERE category = ? AND setting_key = ?");
             
-            // Pastro vlerat nga HTML (përveç textarea ku lejohen formatime specifike)
-            if (isset($settings[$category][$key]) && $settings[$category][$key]['type'] !== 'textarea') {
-                $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            foreach ($_POST as $key => $value) {
+                // Ignoro çelësat speciale
+                if (in_array($key, ['save_settings', 'category', 'csrf_token'])) {
+                    continue;
+                }
+                
+                // Pastro vlerat nga HTML (përveç textarea ku lejohen formatime specifike)
+                if (isset($settings[$category][$key]) && $settings[$category][$key]['type'] !== 'textarea') {
+                    $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+                }
+                
+                $updateStmt->execute([$value, $adminId, $category, $key]);
             }
-            
-            $updateStmt->execute([$value, $adminId, $category, $key]);
-        }
         
         // Trajtimi i skedarëve të ngarkuar
         if (!empty($_FILES)) {
@@ -194,7 +205,11 @@ try {
         }
         
         $successMessage = "Cilësimet u ruajtën me sukses!";
+        
+        // Regenerate CSRF token after successful submission
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
+}
 } catch (PDOException $e) {
     $error = "Gabim në lidhjen me databazën: " . $e->getMessage();
 }
@@ -206,7 +221,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cilësimet e Sistemit - Noteria Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         :root {
             --primary: #2563eb;
@@ -773,6 +788,8 @@ try {
                     
                     <form action="settings.php?tab=<?php echo $key; ?>" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="category" value="<?php echo $key; ?>">
+                        <!-- CSRF Token -->
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                         
                         <div class="form-grid">
                             <?php if (isset($settings[$key])): ?>

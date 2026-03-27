@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Faqja për rivendosjen e fjalëkalimit (Reset Password)
  * 
@@ -129,7 +129,7 @@ function log_password_reset($pdo, $user_id, $status) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ndryshimi i Fjalëkalimit | Noteria</title>
     <link href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         * {
             margin: 0;
@@ -386,5 +386,31 @@ function log_password_reset($pdo, $user_id, $status) {
             }
         }
     </script>
+
+    <!-- Footer -->
+    <style>
+        footer a:hover { color: white !important; }
+    </style>
+    <footer style="background: linear-gradient(135deg, #1a1f2e 0%, #24292e 100%); color: #d1d5da; padding: 40px 0 20px; margin-top: 40px; text-align: center; position: relative;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #cfa856, transparent);"></div>
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6 mb-4">
+                    <span style="font-weight: 800; font-size: 1.5rem; margin-bottom: 10px; display: block; background: linear-gradient(135deg, #ffffff, #cfa856); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">e-Noteria</span>
+                    <p style="color: #8b949e; margin: 0; font-size: 0.9rem;">Platformë SaaS për zyrat noteriale në Kosovë</p>
+                </div>
+            </div>
+            <div style="border-top: 1px solid #30363d; padding-top: 20px; margin-top: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <a href="terms.php" style="color: #8b949e; text-decoration: none; margin: 0 15px; display: inline-block; transition: color 0.3s;">Kushtet e Përdorimit</a>
+                    <a href="Privatesia.php" style="color: #8b949e; text-decoration: none; margin: 0 15px; display: inline-block; transition: color 0.3s;">Politika e Privatësisë</a>
+                    <a href="ndihma.php" style="color: #8b949e; text-decoration: none; margin: 0 15px; display: inline-block; transition: color 0.3s;">Ndihma</a>
+                </div>
+                <p style="margin: 0; font-size: 0.8em; color: #8b949e;">
+                    &copy; <?php echo date('Y'); ?> Platforma e-Noteria | Republika e Kosovës
+                </p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

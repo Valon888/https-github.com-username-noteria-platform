@@ -1,102 +1,44 @@
 <?php
 /**
- * Developer Configuration
- * Konfigurimi i zhvilluesve të platformës
+ * Developer Configuration File
+ * Contains developer-specific settings and functions
  */
 
-// Lista e ID-ve të adminëve që janë zhvillues
-$DEVELOPER_IDS = [
-    1, // Admin me ID 1
-    2, // Admin i ri me ID 2
-    3, // Admin i tretë me ID 3
-    // Shtoni ID-të e tjera të zhvilluesve këtu
-];
+// Developer-specific configurations
+define('DEVELOPER_MODE', getenv('APP_ENV') === 'development');
+define('DEVELOPER_DEBUG', getenv('APP_DEBUG') === 'true');
 
-// Lista e email-ave të zhvilluesve (nëse përdoret sistemi i email-ave)
-$DEVELOPER_EMAILS = [
-    'admin@noteria.al',
-    'developer@noteria.com', 
-    'dev@noteria.com',
-    'support@noteria.com',
-    'newdev@noteria.com', // Email i zhvilluesit të ri
-    // Shtoni email-at e tjera të zhvilluesve këtu
-];
+// IP whitelist for developer access
+$developer_ips = explode(',', getenv('DEVELOPER_IP_WHITELIST') ?: '127.0.0.1,::1');
 
-/**
- * Kontrollon nëse një admin është zhvillues
- */
-function isDeveloper($adminId, $adminEmail = null) {
-    global $DEVELOPER_IDS, $DEVELOPER_EMAILS;
+// Function to check if user is a developer
+function isDeveloper($admin_id) {
+    // Add all developer admin IDs here
+    // Each admin ID in this array will have developer/super-admin access
+    $developer_ids = [1, 2, 3, 4, 5]; // Add developer user IDs here
     
-    // Kontrollo me ID
-    if (in_array($adminId, $DEVELOPER_IDS)) {
-        return true;
+    return in_array($admin_id, $developer_ids);
+}
+
+// Additional developer functions can be added here
+function logDeveloperAction($action, $details = '') {
+    if (DEVELOPER_MODE) {
+        $log = sprintf("[%s] Developer Action: %s - %s\n", date('Y-m-d H:i:s'), $action, $details);
+        file_put_contents(__DIR__ . '/developer.log', $log, FILE_APPEND);
     }
+}
+
+// Check if current IP is allowed for developer features
+function isDeveloperIP() {
+    global $developer_ips;
+    $client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
     
-    // Kontrollo me email nëse është dhënë
-    if ($adminEmail && in_array($adminEmail, $DEVELOPER_EMAILS)) {
-        return true;
+    foreach ($developer_ips as $ip) {
+        $ip = trim($ip);
+        if ($ip === '*' || $ip === $client_ip || (strpos($ip, '*') !== false && fnmatch($ip, $client_ip))) {
+            return true;
+        }
     }
-    
     return false;
-}
-
-/**
- * Merr listën e të gjithë zhvilluesve
- */
-function getDevelopers() {
-    global $DEVELOPER_IDS, $DEVELOPER_EMAILS;
-    
-    return [
-        'ids' => $DEVELOPER_IDS,
-        'emails' => $DEVELOPER_EMAILS
-    ];
-}
-
-/**
- * Shton një zhvillues të ri
- */
-function addDeveloper($adminId, $adminEmail = null) {
-    global $DEVELOPER_IDS, $DEVELOPER_EMAILS;
-    
-    if (!in_array($adminId, $DEVELOPER_IDS)) {
-        $DEVELOPER_IDS[] = $adminId;
-    }
-    
-    if ($adminEmail && !in_array($adminEmail, $DEVELOPER_EMAILS)) {
-        $DEVELOPER_EMAILS[] = $adminEmail;
-    }
-    
-    // Këtu mund të shtoni logjikë për të ruajtur në databazë ose file
-    return true;
-}
-
-// Eksportimi për përdorim në skedarë të tjerë
-if (isset($pdo)) {
-    // Nëse ka lidhje me databazë, mund të ruajmë konfigurimin atje
-    try {
-        $configStmt = $pdo->prepare("
-            INSERT INTO billing_config (config_key, config_value, description) 
-            VALUES (?, ?, ?) 
-            ON DUPLICATE KEY UPDATE config_value = ?, updated_at = NOW()
-        ");
-        
-        $configStmt->execute([
-            'developer_ids', 
-            implode(',', $DEVELOPER_IDS), 
-            'ID-të e adminëve zhvillues',
-            implode(',', $DEVELOPER_IDS)
-        ]);
-        
-        $configStmt->execute([
-            'developer_emails', 
-            implode(',', $DEVELOPER_EMAILS), 
-            'Email-at e zhvilluesve',
-            implode(',', $DEVELOPER_EMAILS)
-        ]);
-        
-    } catch (PDOException $e) {
-        // Nëse ka gabim me databazën, vazhdo pa ruajtur
-    }
 }
 ?>

@@ -1,0 +1,1491 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Aug 13, 2025 at 05:17 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+-- Remove MySQL/MariaDB session and charset settings for SQL Server
+
+-- Table structure for table audit_log
+IF OBJECT_ID('audit_log', 'U') IS NOT NULL DROP TABLE audit_log;
+CREATE TABLE audit_log (
+  id INT NOT NULL PRIMARY KEY,
+  user_id INT NULL,
+  action NVARCHAR(255) NULL,
+  details NVARCHAR(MAX) NULL,
+  created_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
+-- Dumping data for table audit_log
+INSERT INTO audit_log (id, user_id, action, details, created_at) VALUES
+(1, 3, N'Kyçje', N'Kyçje e suksesshme', '2025-08-04 22:25:41'),
+(2, 3, N'Kyçje', N'Kyçje e suksesshme', '2025-08-04 22:26:25'),
+(3, 7, N'Kyçje', N'Kyçje e suksesshme', '2025-08-04 22:26:50'),
+(4, 9, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:35:40'),
+(5, 9, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:41:15'),
+(6, 9, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:51:42'),
+(7, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:59:22'),
+(8, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:46:17'),
+(9, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:50:04'),
+(10, 11, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:53:01'),
+(11, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:58:14'),
+(12, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:02:13'),
+(13, 11, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:02:55'),
+(14, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:06:08'),
+(15, 11, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:15:46'),
+(16, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:24:15'),
+(17, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:27:23'),
+(18, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:29:08'),
+(19, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:43:12'),
+(20, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:46:17'),
+(21, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:48:01'),
+(22, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 13:48:29'),
+(23, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 13:58:30'),
+(24, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 14:11:39'),
+(25, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 14:39:35'),
+(26, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 14:58:56'),
+(27, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 15:56:09'),
+(28, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 16:32:18'),
+(29, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 08:42:12'),
+(30, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 09:04:30'),
+(31, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 09:06:27'),
+(32, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 09:16:30'),
+(33, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:00:37'),
+(34, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:20:26'),
+(35, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:27:33'),
+(36, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:28:36'),
+(37, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:00:08'),
+(38, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:08:09'),
+(39, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:19:35'),
+(40, 17, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:32:51'),
+(41, 18, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 21:54:46'),
+(42, 19, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 21:58:50'),
+(43, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-11 08:20:17'),
+(44, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-12 09:12:18'),
+(45, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-12 14:50:18');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `faqs`
+--
+
+CREATE TABLE `faqs` (
+  `id` int(11) NOT NULL,
+  `question` varchar(255) NOT NULL,
+  `answer` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `faqs`
+--
+
+INSERT INTO `faqs` (`id`, `question`, `answer`) VALUES
+(1, 'Si të regjistrohem?', 'Kliko te butoni Regjistrohu dhe plotëso të dhënat.'),
+(2, 'Si të ndryshoj fjalëkalimin?', 'Shko te profili yt dhe zgjidh Ndrysho Fjalëkalimin.'),
+(3, 'Si të regjistrohem si zyrë në platformë?', 'Klikoni te butoni \"Regjistro Zyrën\", plotësoni të gjitha të dhënat e kërkuara dhe kryeni pagesën për të aktivizuar llogarinë tuaj.'),
+(4, 'A mund të ndryshoj të dhënat e zyrës sime?', 'Po, pasi të kyçeni në platformë, mund të ndryshoni të dhënat e zyrës nga profili juaj.'),
+(5, 'Si bëhet pagesa për shfrytëzimin e platformës?', 'Pagesa bëhet gjatë regjistrimit përmes transferit bankar ose Paysera. Pas verifikimit të pagesës, zyra juaj do të aktivizohet.'),
+(6, 'Çfarë ndodh nëse harroj fjalëkalimin?', 'Klikoni te \"Keni harruar fjalëkalimin?\" dhe ndiqni udhëzimet për të rikuperuar fjalëkalimin përmes emailit.'),
+(7, 'A janë të sigurta të dhënat e mia?', 'Po, të gjitha të dhënat ruhen në mënyrë të sigurt dhe përpunohen sipas ligjit të Kosovës dhe GDPR.'),
+(8, 'Si mund të rezervoj një termin?', 'Pasi të kyçeni, zgjidhni opsionin për rezervim, plotësoni të dhënat dhe konfirmoni rezervimin.'),
+(9, 'Kush ka qasje në të dhënat e mia?', 'Vetëm ju dhe administrata e platformës keni qasje në të dhënat tuaja. Të dhënat nuk shpërndahen me palë të treta pa pëlqimin tuaj.'),
+(10, 'Si mund të kontaktoj mbështetjen?', 'Për çdo pyetje ose problem, mund të na kontaktoni në emailin zyrtar të platformës ose përmes formularit të kontaktit.'),
+(11, 'Çfarë role ekzistojnë në platformë?', 'Platforma ka role të ndryshme: admin, zyrtar dhe përdorues i thjeshtë. Secili rol ka të drejta të ndryshme aksesimi.'),
+(12, 'A mund të fshij llogarinë time?', 'Po, mund të kërkoni fshirjen e llogarisë duke kontaktuar administratën e platformës.');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `fatura`
+--
+
+CREATE TABLE `fatura` (
+  `id` int(11) NOT NULL,
+  `reservation_id` int(11) NOT NULL,
+  `zyra_id` int(11) NOT NULL,
+  `nr_fatures` varchar(50) NOT NULL,
+  `data_fatures` date NOT NULL,
+  `shuma` decimal(10,2) NOT NULL,
+  `pershkrimi` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `fatura`
+--
+
+INSERT INTO `fatura` (`id`, `reservation_id`, `zyra_id`, `nr_fatures`, `data_fatures`, `shuma`, `pershkrimi`, `created_at`) VALUES
+(1, 7, 3, '121212122', '2025-08-25', 10.00, 'Vërtetim', '2025-08-07 15:02:16'),
+(2, 7, 3, '121212122', '2025-08-08', 50.00, 'Vërtetim', '2025-08-07 16:42:13'),
+(3, 17, 6, '12547894228', '2025-08-12', 150.00, 'Kontratë Prone', '2025-08-10 21:56:21');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `migrations`
+--
+
+CREATE TABLE `migrations` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `migration` varchar(255) NOT NULL,
+  `batch` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `privacy_policy`
+--
+
+CREATE TABLE `privacy_policy` (
+  `id` int(11) NOT NULL,
+  `content` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `reservations`
+--
+
+CREATE TABLE `reservations` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `zyra_id` int(11) NOT NULL,
+  `service` varchar(100) NOT NULL,
+  `date` date NOT NULL,
+  `time` time NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `document_path` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `user_id`, `zyra_id`, `service`, `date`, `time`, `created_at`, `document_path`) VALUES
+(1, 6, 0, 'Legalizim', '2025-08-05', '09:45:00', '2025-08-04 16:00:37', NULL),
+(2, 6, 0, 'Vertetim Dokumenti', '2025-08-09', '15:05:00', '2025-08-04 16:05:51', NULL),
+(3, 11, 1, 'Deklaratë', '2025-08-08', '09:58:00', '2025-08-05 16:55:53', NULL),
+(4, 11, 1, 'Legalizim', '2025-08-08', '10:07:00', '2025-08-05 17:03:39', NULL),
+(5, 11, 3, 'Vertetim Dokumenti', '2025-08-08', '09:24:00', '2025-08-05 17:22:58', 'uploads/68923df2d23e3_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(6, 14, 1, 'Deklaratë', '2025-08-08', '15:25:00', '2025-08-05 17:46:59', 'uploads/68924393c2837_MICS6_Test_100_Pyetje_Kategorite.pdf'),
+(7, 14, 3, 'Vertetim Dokumenti', '2025-09-29', '09:02:00', '2025-08-07 14:11:01', 'uploads/6894b3f54dd6e_MICS6_Test_100_Pyetje_Kategorite.pdf'),
+(8, 14, 3, 'Vertetim Dokumenti', '2025-08-11', '10:30:00', '2025-08-08 09:05:38', 'uploads/6895bde283bf5_MICS6 Questionnaire for Children Under Five ALB_20191128 (1).pdf'),
+(9, 14, 3, 'Vertetim Dokumenti', '2025-08-11', '11:30:00', '2025-08-08 09:17:16', 'uploads/6895c09c7c7ab_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(10, 14, 3, 'Deklaratë', '2025-08-12', '14:25:00', '2025-08-08 09:22:57', 'uploads/6895c1f13558d_Testi_Ushtrues_MICS_85_Pyetje_Final.pdf'),
+(11, 14, 3, 'Kontratë', '2025-08-13', '14:30:00', '2025-08-08 09:29:52', 'uploads/6895c390513c3_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(12, 14, 3, 'Vertetim Dokumenti', '2025-08-13', '10:37:00', '2025-08-08 09:34:02', 'uploads/6895c48a5858e_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(13, 14, 3, 'Legalizim', '2025-08-14', '11:36:00', '2025-08-08 09:37:03', 'uploads/6895c53f251be_MICS6 Questionnaire for Children Under Five ALB_20191128 (1).pdf'),
+(14, 14, 3, 'Legalizim', '2025-08-15', '09:31:00', '2025-08-10 09:02:03', 'uploads/6898600b6ee8d_1000015350.jpg'),
+(15, 14, 1, 'Deklaratë', '2025-08-12', '11:15:00', '2025-08-10 09:15:50', 'uploads/68986346441e2_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(16, 14, 1, 'Deklaratë', '2025-08-12', '10:15:00', '2025-08-10 09:18:16', 'uploads/689863d818504_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(17, 17, 6, 'Kontratë', '2025-08-12', '10:30:00', '2025-08-10 15:33:56', 'uploads/6898bbe491bab_MICS6 Questionnaire for Children Age 5-17 ALB_20191128 (1) (3).pdf'),
+(18, 19, 6, 'Legalizim', '2025-08-12', '11:30:00', '2025-08-10 22:00:04', 'uploads/689916642721c_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(19, 19, 1, 'Legalizim', '2025-08-12', '06:12:00', '2025-08-10 22:13:54', 'uploads/689919a2f1f1f_MICS6 Questionnaire for Children Under Five ALB_20191128 (1).pdf');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `emri` varchar(50) NOT NULL,
+  `mbiemri` varchar(50) NOT NULL,
+  `name` varchar(100) GENERATED ALWAYS AS (concat(`emri`,' ',`mbiemri`)) STORED,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `roli` varchar(20) NOT NULL DEFAULT 'user',
+  `zyra_id` int(11) DEFAULT NULL,
+  `personal_number` varchar(10) NOT NULL,
+  `role` varchar(20) NOT NULL DEFAULT 'user'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `emri`, `mbiemri`, `email`, `password`, `created_at`, `roli`, `zyra_id`, `personal_number`, `role`) VALUES
+(1, 'Valon', 'Sadiku', 'valonsadiku2030@gmail.com', '$2y$10$VOG/EK1rujRHI2krWhpxvefwp7URAOiBSwUiYMG74ymPIK4OnKq3m', '2025-08-04 09:16:17', 'user', 1, '', 'user'),
+(3, 'Valon', 'Sadiku', 'shefki.shefkiu@gmail.com', '$2y$10$d1K1q.UXYQOPZWjL//sbeecobeGLaVyxjoooAq0tyN8cGWQ6RExNO', '2025-08-04 09:38:10', 'user', 1, '', 'user'),
+(4, 'Valon', 'Sadiku', 'emir.piraj@gmail.com', '$2y$10$tsvxRg7HNBZ4wFXdmrRXPeUTDsmPNOpV7r.gTuD7tZxZqDvgovXmu', '2025-08-04 09:41:02', 'user', 1, '', 'user'),
+(5, 'Valon', 'Sadiku', 'valonsadiku2018@gmail.com', '$2y$10$pZLjB4a/TsH8eFg6ZGDH9utD68uqVNns9GXOjukE42xasrh1sc8bS', '2025-08-04 09:49:13', 'user', 1, '', 'user'),
+(6, 'Agon', 'Sadiku', 'Agon.sadiku@gmail.com', '$2y$10$oLscdjfO1/VrLa3JaKegvOc6E2KGrXI.wDM02FnMWYXZ.2fJj5sa.', '2025-08-04 09:57:35', 'user', 1, '', 'user'),
+(7, 'Drita', 'Sadiku', 'drita.sadiku@gmail.com', '$2y$10$FjeUFU7nOP.v7QBs1LLehekb.gm1eicjWma/37Bh0JTu6gFPd.RC.', '2025-08-04 15:45:28', 'user', 1, '', 'user'),
+(8, 'Shaip', 'Sadiku', 'shaip.sadiku@gmail.com', '$2y$10$OMz.qZ0pVCgus8FdXXpH5eTkgunId3fYFceoaWECOfVpc/asaDH76', '2025-08-04 21:57:52', 'user', 1, '', 'user'),
+(9, 'Gresa', 'Biçkaj', 'gresa.biqkaj@gmail.com', '$2y$10$3FiOoCe1fTNxWcRH6/8eG.qZIzAaEekgObZ2KcTjsxOtipAshO5gO', '2025-08-05 09:35:05', 'user', 1, '1244726298', 'user'),
+(10, 'Naser ', 'Pajaziti', 'naser.pajaziti@gmail.com', '$2y$10$W7haid56fxVQjD73qGunS.clN5xZ/GxuRJDYMEAMFr1P7mB34gGN2', '2025-08-05 09:58:34', 'admin', 3, '1144789865', 'user'),
+(11, 'Valon ', 'Biçkaj', 'valon.biqkaj@gmail.com', '$2y$10$L48WSF653jZrr3lPJC257u0.95LcuxAyPbCBq4HLszsGFC2LDYLcS', '2025-08-05 16:52:19', 'user', 1, '1344726298', 'user'),
+(12, 'Dredhëza', 'Sadiku', 'dredhza.sadiku@gmail.com', '$2y$10$Jfei2EzyeV2Qzhs.QOH.8edsHx1tT6ihTUhKZfe7h4tfCAnHWKYWS', '2025-08-05 17:39:08', 'user', 3, '111444999', 'user'),
+(13, 'Dredhëza', 'Sadikaj', 'dredhza.sadikaj@gmail.com', '$2y$10$uGnInKIJhMduf85JMiiz1.wkrHewibYoJQtusPFlJpGhU4byu6igS', '2025-08-05 17:42:37', 'admin', 1, '1114449999', 'user'),
+(14, 'Dredhëza', 'Biçkaj', 'dredhza.biqkaj@gmail.com', '$2y$10$9LFD7yfERU78MzoFKRKUF.g/YR3sho2w.ZWOjfg8tUnf1ut5LTj8S', '2025-08-05 17:45:09', 'user', 1, '1114449998', 'user'),
+(15, 'Valon', 'Pajaziti', 'valonpajaziti2030@gmail.com', '$2y$10$6AsKa2ZSnheKSXztOs7B..99Thb7YPUL6LM.Zd7ZZRSbRuzvg8FVC', '2025-08-10 15:01:53', 'admin', 1, '111444888', 'user'),
+(16, 'Avni', 'Idrizi', 'avni.idrizi@gmail.com', '$2y$10$62/xtKLT0JHBC/.VZzuIBOCEdzp8OdOKgXiQn3cLfaV72mbxbuhWe', '2025-08-10 15:30:12', 'user', 1, '111333222', 'user'),
+(17, 'Avni', 'Idrizi', 'avni.idrizi1@gmail.com', '$2y$10$g5xXPlzMdvZDzP8MVkRC3OkUO/B61f3Ps/oN/jS5e1d84w8EIQ2AC', '2025-08-10 15:32:13', 'user', 1, '1113332222', 'user'),
+(18, 'Valon', 'Dreshaj', 'valondreshaj2049@gmail.com', '$2y$10$4zzXHrdIygozsJPUNcc8M.koStZK9sJ47ODfI6EM65FF3zTVgty8i', '2025-08-10 21:54:04', 'admin', 1, '1444555777', 'user'),
+(19, 'Valon', 'Berisha', 'valonberisha2050@gmail.com', '$2y$10$srhghgYH5w.xT2j6RTBUgOa1odEg7XCyriXYYD.EyrgLvqNh9HigS', '2025-08-10 21:58:01', 'user', 1, '1111111111', 'user');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `zyrat`
+--
+
+CREATE TABLE `zyrat` (
+  `id` int(11) NOT NULL,
+  `emri` varchar(100) NOT NULL,
+  `qyteti` varchar(50) DEFAULT NULL,
+  `shteti` varchar(50) NOT NULL DEFAULT 'Kosova',
+  `email` varchar(100) NOT NULL,
+  `telefoni` varchar(20) NOT NULL,
+  `banka` varchar(100) DEFAULT NULL,
+  `iban` varchar(34) DEFAULT NULL,
+  `llogaria` varchar(30) DEFAULT NULL,
+  `pagesa` decimal(10,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `zyrat`
+--
+
+INSERT INTO `zyrat` (`id`, `emri`, `qyteti`, `shteti`, `email`, `telefoni`, `banka`, `iban`, `llogaria`, `pagesa`) VALUES
+(1, 'Valon Sadiku', NULL, 'Kosova', '', '', NULL, NULL, NULL, NULL),
+(2, 'Valon Sadiku', NULL, 'Kosova', '', '', NULL, NULL, NULL, NULL),
+(3, 'Naser Pajaziti', NULL, 'Kosova', '', '', NULL, NULL, NULL, NULL),
+(4, 'Drita Sadiku', 'Viti', 'Kosova', 'drita.sadiku@gmail.com', '+38344991789', NULL, NULL, NULL, NULL),
+(5, 'Drita Sadiku', 'Viti', 'Kosova', 'drita.sadiku@gmail.com', '+38344991789', NULL, NULL, NULL, NULL),
+(6, 'Naser Pajaziti', 'Viti', 'Kosova', 'naser.pajaziti@gmail.com', '+38344991789', 'NLB BANK', 'XK1702018603253707', '1702018603253707', 50.00),
+(7, 'Naser Pajaziti', 'Viti', 'Kosova', 'naser.pajaziti@gmail.com', '+38344991789', 'NLB BANK', 'XK1702018603253707', '1702018603253707', 50.00),
+(8, 'Dredhëza', 'Gjilan', 'Kosova', 'valonsadiku2018@gmail.com', '+38344991783', 'NLB BANK', 'XK170201863253707', '1702018603253707', 50.00);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `faqs`
+--
+ALTER TABLE `faqs`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `fatura`
+--
+ALTER TABLE `fatura`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `reservation_id` (`reservation_id`),
+  ADD KEY `zyra_id` (`zyra_id`);
+
+--
+-- Indexes for table `migrations`
+--
+ALTER TABLE `migrations`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `privacy_policy`
+--
+ALTER TABLE `privacy_policy`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `zyra_id` (`zyra_id`);
+
+--
+-- Indexes for table `zyrat`
+--
+ALTER TABLE `zyrat`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+
+--
+-- AUTO_INCREMENT for table `faqs`
+--
+ALTER TABLE `faqs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT for table `fatura`
+--
+ALTER TABLE `fatura`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `migrations`
+--
+ALTER TABLE `migrations`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `privacy_policy`
+--
+ALTER TABLE `privacy_policy`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `reservations`
+--
+ALTER TABLE `reservations`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT for table `zyrat`
+--
+ALTER TABLE `zyrat`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `fatura`
+--
+ALTER TABLE `fatura`
+  ADD CONSTRAINT `fatura_ibfk_1` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`),
+  ADD CONSTRAINT `fatura_ibfk_2` FOREIGN KEY (`zyra_id`) REFERENCES `zyrat` (`id`);
+
+--
+-- Constraints for table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD CONSTRAINT `reservations_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`zyra_id`) REFERENCES `zyrat` (`id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Aug 13, 2025 at 05:17 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+-- Remove MySQL/MariaDB session and charset settings for SQL Server
+
+-- Table structure for table audit_log
+IF OBJECT_ID('audit_log', 'U') IS NOT NULL DROP TABLE audit_log;
+CREATE TABLE audit_log (
+  id INT NOT NULL PRIMARY KEY,
+  user_id INT NULL,
+  action NVARCHAR(255) NULL,
+  details NVARCHAR(MAX) NULL,
+  created_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
+-- Dumping data for table audit_log
+INSERT INTO audit_log (id, user_id, action, details, created_at) VALUES
+(1, 3, N'Kyçje', N'Kyçje e suksesshme', '2025-08-04 22:25:41'),
+(2, 3, N'Kyçje', N'Kyçje e suksesshme', '2025-08-04 22:26:25'),
+(3, 7, N'Kyçje', N'Kyçje e suksesshme', '2025-08-04 22:26:50'),
+(4, 9, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:35:40'),
+(5, 9, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:41:15'),
+(6, 9, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:51:42'),
+(7, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 09:59:22'),
+(8, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:46:17'),
+(9, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:50:04'),
+(10, 11, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:53:01'),
+(11, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 16:58:14'),
+(12, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:02:13'),
+(13, 11, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:02:55'),
+(14, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:06:08'),
+(15, 11, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:15:46'),
+(16, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:24:15'),
+(17, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:27:23'),
+(18, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:29:08'),
+(19, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:43:12'),
+(20, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:46:17'),
+(21, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-05 17:48:01'),
+(22, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 13:48:29'),
+(23, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 13:58:30'),
+(24, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 14:11:39'),
+(25, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 14:39:35'),
+(26, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 14:58:56'),
+(27, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 15:56:09'),
+(28, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-07 16:32:18'),
+(29, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 08:42:12'),
+(30, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 09:04:30'),
+(31, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 09:06:27'),
+(32, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-08 09:16:30'),
+(33, 14, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:00:37'),
+(34, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:20:26'),
+(35, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:27:33'),
+(36, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 09:28:36'),
+(37, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:00:08'),
+(38, 13, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:08:09'),
+(39, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:19:35'),
+(40, 17, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 15:32:51'),
+(41, 18, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 21:54:46'),
+(42, 19, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-10 21:58:50'),
+(43, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-11 08:20:17'),
+(44, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-12 09:12:18'),
+(45, 10, N'Kyçje', N'Kyçje e suksesshme me verifikim foto dhe numër personal', '2025-08-12 14:50:18');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `faqs`
+--
+
+CREATE TABLE `faqs` (
+  `id` int(11) NOT NULL,
+  `question` varchar(255) NOT NULL,
+  `answer` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `faqs`
+--
+
+INSERT INTO `faqs` (`id`, `question`, `answer`) VALUES
+(1, 'Si të regjistrohem?', 'Kliko te butoni Regjistrohu dhe plotëso të dhënat.'),
+(2, 'Si të ndryshoj fjalëkalimin?', 'Shko te profili yt dhe zgjidh Ndrysho Fjalëkalimin.'),
+(3, 'Si të regjistrohem si zyrë në platformë?', 'Klikoni te butoni \"Regjistro Zyrën\", plotësoni të gjitha të dhënat e kërkuara dhe kryeni pagesën për të aktivizuar llogarinë tuaj.'),
+(4, 'A mund të ndryshoj të dhënat e zyrës sime?', 'Po, pasi të kyçeni në platformë, mund të ndryshoni të dhënat e zyrës nga profili juaj.'),
+(5, 'Si bëhet pagesa për shfrytëzimin e platformës?', 'Pagesa bëhet gjatë regjistrimit përmes transferit bankar ose Paysera. Pas verifikimit të pagesës, zyra juaj do të aktivizohet.'),
+(6, 'Çfarë ndodh nëse harroj fjalëkalimin?', 'Klikoni te \"Keni harruar fjalëkalimin?\" dhe ndiqni udhëzimet për të rikuperuar fjalëkalimin përmes emailit.'),
+(7, 'A janë të sigurta të dhënat e mia?', 'Po, të gjitha të dhënat ruhen në mënyrë të sigurt dhe përpunohen sipas ligjit të Kosovës dhe GDPR.'),
+(8, 'Si mund të rezervoj një termin?', 'Pasi të kyçeni, zgjidhni opsionin për rezervim, plotësoni të dhënat dhe konfirmoni rezervimin.'),
+(9, 'Kush ka qasje në të dhënat e mia?', 'Vetëm ju dhe administrata e platformës keni qasje në të dhënat tuaja. Të dhënat nuk shpërndahen me palë të treta pa pëlqimin tuaj.'),
+(10, 'Si mund të kontaktoj mbështetjen?', 'Për çdo pyetje ose problem, mund të na kontaktoni në emailin zyrtar të platformës ose përmes formularit të kontaktit.'),
+(11, 'Çfarë role ekzistojnë në platformë?', 'Platforma ka role të ndryshme: admin, zyrtar dhe përdorues i thjeshtë. Secili rol ka të drejta të ndryshme aksesimi.'),
+(12, 'A mund të fshij llogarinë time?', 'Po, mund të kërkoni fshirjen e llogarisë duke kontaktuar administratën e platformës.');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `fatura`
+--
+
+CREATE TABLE `fatura` (
+  `id` int(11) NOT NULL,
+  `reservation_id` int(11) NOT NULL,
+  `zyra_id` int(11) NOT NULL,
+  `nr_fatures` varchar(50) NOT NULL,
+  `data_fatures` date NOT NULL,
+  `shuma` decimal(10,2) NOT NULL,
+  `pershkrimi` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `fatura`
+--
+
+INSERT INTO `fatura` (`id`, `reservation_id`, `zyra_id`, `nr_fatures`, `data_fatures`, `shuma`, `pershkrimi`, `created_at`) VALUES
+(1, 7, 3, '121212122', '2025-08-25', 10.00, 'Vërtetim', '2025-08-07 15:02:16'),
+(2, 7, 3, '121212122', '2025-08-08', 50.00, 'Vërtetim', '2025-08-07 16:42:13'),
+(3, 17, 6, '12547894228', '2025-08-12', 150.00, 'Kontratë Prone', '2025-08-10 21:56:21');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `migrations`
+--
+
+CREATE TABLE `migrations` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `migration` varchar(255) NOT NULL,
+  `batch` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `privacy_policy`
+--
+
+CREATE TABLE `privacy_policy` (
+  `id` int(11) NOT NULL,
+  `content` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `reservations`
+--
+
+CREATE TABLE `reservations` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `zyra_id` int(11) NOT NULL,
+  `service` varchar(100) NOT NULL,
+  `date` date NOT NULL,
+  `time` time NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `document_path` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `user_id`, `zyra_id`, `service`, `date`, `time`, `created_at`, `document_path`) VALUES
+(1, 6, 0, 'Legalizim', '2025-08-05', '09:45:00', '2025-08-04 16:00:37', NULL),
+(2, 6, 0, 'Vertetim Dokumenti', '2025-08-09', '15:05:00', '2025-08-04 16:05:51', NULL),
+(3, 11, 1, 'Deklaratë', '2025-08-08', '09:58:00', '2025-08-05 16:55:53', NULL),
+(4, 11, 1, 'Legalizim', '2025-08-08', '10:07:00', '2025-08-05 17:03:39', NULL),
+(5, 11, 3, 'Vertetim Dokumenti', '2025-08-08', '09:24:00', '2025-08-05 17:22:58', 'uploads/68923df2d23e3_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(6, 14, 1, 'Deklaratë', '2025-08-08', '15:25:00', '2025-08-05 17:46:59', 'uploads/68924393c2837_MICS6_Test_100_Pyetje_Kategorite.pdf'),
+(7, 14, 3, 'Vertetim Dokumenti', '2025-09-29', '09:02:00', '2025-08-07 14:11:01', 'uploads/6894b3f54dd6e_MICS6_Test_100_Pyetje_Kategorite.pdf'),
+(8, 14, 3, 'Vertetim Dokumenti', '2025-08-11', '10:30:00', '2025-08-08 09:05:38', 'uploads/6895bde283bf5_MICS6 Questionnaire for Children Under Five ALB_20191128 (1).pdf'),
+(9, 14, 3, 'Vertetim Dokumenti', '2025-08-11', '11:30:00', '2025-08-08 09:17:16', 'uploads/6895c09c7c7ab_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(10, 14, 3, 'Deklaratë', '2025-08-12', '14:25:00', '2025-08-08 09:22:57', 'uploads/6895c1f13558d_Testi_Ushtrues_MICS_85_Pyetje_Final.pdf'),
+(11, 14, 3, 'Kontratë', '2025-08-13', '14:30:00', '2025-08-08 09:29:52', 'uploads/6895c390513c3_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(12, 14, 3, 'Vertetim Dokumenti', '2025-08-13', '10:37:00', '2025-08-08 09:34:02', 'uploads/6895c48a5858e_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(13, 14, 3, 'Legalizim', '2025-08-14', '11:36:00', '2025-08-08 09:37:03', 'uploads/6895c53f251be_MICS6 Questionnaire for Children Under Five ALB_20191128 (1).pdf'),
+(14, 14, 3, 'Legalizim', '2025-08-15', '09:31:00', '2025-08-10 09:02:03', 'uploads/6898600b6ee8d_1000015350.jpg'),
+(15, 14, 1, 'Deklaratë', '2025-08-12', '11:15:00', '2025-08-10 09:15:50', 'uploads/68986346441e2_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(16, 14, 1, 'Deklaratë', '2025-08-12', '10:15:00', '2025-08-10 09:18:16', 'uploads/689863d818504_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(17, 17, 6, 'Kontratë', '2025-08-12', '10:30:00', '2025-08-10 15:33:56', 'uploads/6898bbe491bab_MICS6 Questionnaire for Children Age 5-17 ALB_20191128 (1) (3).pdf'),
+(18, 19, 6, 'Legalizim', '2025-08-12', '11:30:00', '2025-08-10 22:00:04', 'uploads/689916642721c_MICS6 Household Questionnaire ALB_20191128 (1) (1).pdf'),
+(19, 19, 1, 'Legalizim', '2025-08-12', '06:12:00', '2025-08-10 22:13:54', 'uploads/689919a2f1f1f_MICS6 Questionnaire for Children Under Five ALB_20191128 (1).pdf');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `emri` varchar(50) NOT NULL,
+  `mbiemri` varchar(50) NOT NULL,
+  `name` varchar(100) GENERATED ALWAYS AS (concat(`emri`,' ',`mbiemri`)) STORED,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `roli` varchar(20) NOT NULL DEFAULT 'user',
+  `zyra_id` int(11) DEFAULT NULL,
+  `personal_number` varchar(10) NOT NULL,
+  `role` varchar(20) NOT NULL DEFAULT 'user'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `emri`, `mbiemri`, `email`, `password`, `created_at`, `roli`, `zyra_id`, `personal_number`, `role`) VALUES
+(1, 'Valon', 'Sadiku', 'valonsadiku2030@gmail.com', '$2y$10$VOG/EK1rujRHI2krWhpxvefwp7URAOiBSwUiYMG74ymPIK4OnKq3m', '2025-08-04 09:16:17', 'user', 1, '', 'user'),
+(3, 'Valon', 'Sadiku', 'shefki.shefkiu@gmail.com', '$2y$10$d1K1q.UXYQOPZWjL//sbeecobeGLaVyxjoooAq0tyN8cGWQ6RExNO', '2025-08-04 09:38:10', 'user', 1, '', 'user'),
+(4, 'Valon', 'Sadiku', 'emir.piraj@gmail.com', '$2y$10$tsvxRg7HNBZ4wFXdmrRXPeUTDsmPNOpV7r.gTuD7tZxZqDvgovXmu', '2025-08-04 09:41:02', 'user', 1, '', 'user'),
+(5, 'Valon', 'Sadiku', 'valonsadiku2018@gmail.com', '$2y$10$pZLjB4a/TsH8eFg6ZGDH9utD68uqVNns9GXOjukE42xasrh1sc8bS', '2025-08-04 09:49:13', 'user', 1, '', 'user'),
+(6, 'Agon', 'Sadiku', 'Agon.sadiku@gmail.com', '$2y$10$oLscdjfO1/VrLa3JaKegvOc6E2KGrXI.wDM02FnMWYXZ.2fJj5sa.', '2025-08-04 09:57:35', 'user', 1, '', 'user'),
+(7, 'Drita', 'Sadiku', 'drita.sadiku@gmail.com', '$2y$10$FjeUFU7nOP.v7QBs1LLehekb.gm1eicjWma/37Bh0JTu6gFPd.RC.', '2025-08-04 15:45:28', 'user', 1, '', 'user'),
+(8, 'Shaip', 'Sadiku', 'shaip.sadiku@gmail.com', '$2y$10$OMz.qZ0pVCgus8FdXXpH5eTkgunId3fYFceoaWECOfVpc/asaDH76', '2025-08-04 21:57:52', 'user', 1, '', 'user'),
+(9, 'Gresa', 'Biçkaj', 'gresa.biqkaj@gmail.com', '$2y$10$3FiOoCe1fTNxWcRH6/8eG.qZIzAaEekgObZ2KcTjsxOtipAshO5gO', '2025-08-05 09:35:05', 'user', 1, '1244726298', 'user'),
+(10, 'Naser ', 'Pajaziti', 'naser.pajaziti@gmail.com', '$2y$10$W7haid56fxVQjD73qGunS.clN5xZ/GxuRJDYMEAMFr1P7mB34gGN2', '2025-08-05 09:58:34', 'admin', 3, '1144789865', 'user'),
+(11, 'Valon ', 'Biçkaj', 'valon.biqkaj@gmail.com', '$2y$10$L48WSF653jZrr3lPJC257u0.95LcuxAyPbCBq4HLszsGFC2LDYLcS', '2025-08-05 16:52:19', 'user', 1, '1344726298', 'user'),
+(12, 'Dredhëza', 'Sadiku', 'dredhza.sadiku@gmail.com', '$2y$10$Jfei2EzyeV2Qzhs.QOH.8edsHx1tT6ihTUhKZfe7h4tfCAnHWKYWS', '2025-08-05 17:39:08', 'user', 3, '111444999', 'user'),
+(13, 'Dredhëza', 'Sadikaj', 'dredhza.sadikaj@gmail.com', '$2y$10$uGnInKIJhMduf85JMiiz1.wkrHewibYoJQtusPFlJpGhU4byu6igS', '2025-08-05 17:42:37', 'admin', 1, '1114449999', 'user'),
+(14, 'Dredhëza', 'Biçkaj', 'dredhza.biqkaj@gmail.com', '$2y$10$9LFD7yfERU78MzoFKRKUF.g/YR3sho2w.ZWOjfg8tUnf1ut5LTj8S', '2025-08-05 17:45:09', 'user', 1, '1114449998', 'user'),
+(15, 'Valon', 'Pajaziti', 'valonpajaziti2030@gmail.com', '$2y$10$6AsKa2ZSnheKSXztOs7B..99Thb7YPUL6LM.Zd7ZZRSbRuzvg8FVC', '2025-08-10 15:01:53', 'admin', 1, '111444888', 'user'),
+(16, 'Avni', 'Idrizi', 'avni.idrizi@gmail.com', '$2y$10$62/xtKLT0JHBC/.VZzuIBOCEdzp8OdOKgXiQn3cLfaV72mbxbuhWe', '2025-08-10 15:30:12', 'user', 1, '111333222', 'user'),
+(17, 'Avni', 'Idrizi', 'avni.idrizi1@gmail.com', '$2y$10$g5xXPlzMdvZDzP8MVkRC3OkUO/B61f3Ps/oN/jS5e1d84w8EIQ2AC', '2025-08-10 15:32:13', 'user', 1, '1113332222', 'user'),
+(18, 'Valon', 'Dreshaj', 'valondreshaj2049@gmail.com', '$2y$10$4zzXHrdIygozsJPUNcc8M.koStZK9sJ47ODfI6EM65FF3zTVgty8i', '2025-08-10 21:54:04', 'admin', 1, '1444555777', 'user'),
+(19, 'Valon', 'Berisha', 'valonberisha2050@gmail.com', '$2y$10$srhghgYH5w.xT2j6RTBUgOa1odEg7XCyriXYYD.EyrgLvqNh9HigS', '2025-08-10 21:58:01', 'user', 1, '1111111111', 'user');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `zyrat`
+--
+
+CREATE TABLE `zyrat` (
+  `id` int(11) NOT NULL,
+  `emri` varchar(100) NOT NULL,
+  `qyteti` varchar(50) DEFAULT NULL,
+  `shteti` varchar(50) NOT NULL DEFAULT 'Kosova',
+  `email` varchar(100) NOT NULL,
+  `telefoni` varchar(20) NOT NULL,
+  `banka` varchar(100) DEFAULT NULL,
+  `iban` varchar(34) DEFAULT NULL,
+  `llogaria` varchar(30) DEFAULT NULL,
+  `pagesa` decimal(10,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `zyrat`
+--
+
+INSERT INTO `zyrat` (`id`, `emri`, `qyteti`, `shteti`, `email`, `telefoni`, `banka`, `iban`, `llogaria`, `pagesa`) VALUES
+(1, 'Valon Sadiku', NULL, 'Kosova', '', '', NULL, NULL, NULL, NULL),
+(2, 'Valon Sadiku', NULL, 'Kosova', '', '', NULL, NULL, NULL, NULL),
+(3, 'Naser Pajaziti', NULL, 'Kosova', '', '', NULL, NULL, NULL, NULL),
+(4, 'Drita Sadiku', 'Viti', 'Kosova', 'drita.sadiku@gmail.com', '+38344991789', NULL, NULL, NULL, NULL),
+(5, 'Drita Sadiku', 'Viti', 'Kosova', 'drita.sadiku@gmail.com', '+38344991789', NULL, NULL, NULL, NULL),
+(6, 'Naser Pajaziti', 'Viti', 'Kosova', 'naser.pajaziti@gmail.com', '+38344991789', 'NLB BANK', 'XK1702018603253707', '1702018603253707', 50.00),
+(7, 'Naser Pajaziti', 'Viti', 'Kosova', 'naser.pajaziti@gmail.com', '+38344991789', 'NLB BANK', 'XK1702018603253707', '1702018603253707', 50.00),
+(8, 'Dredhëza', 'Gjilan', 'Kosova', 'valonsadiku2018@gmail.com', '+38344991783', 'NLB BANK', 'XK170201863253707', '1702018603253707', 50.00);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `faqs`
+--
+ALTER TABLE `faqs`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `fatura`
+--
+ALTER TABLE `fatura`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `reservation_id` (`reservation_id`),
+  ADD KEY `zyra_id` (`zyra_id`);
+
+--
+-- Indexes for table `migrations`
+--
+ALTER TABLE `migrations`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `privacy_policy`
+--
+ALTER TABLE `privacy_policy`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `zyra_id` (`zyra_id`);
+
+--
+-- Indexes for table `zyrat`
+--
+ALTER TABLE `zyrat`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+
+--
+-- AUTO_INCREMENT for table `faqs`
+--
+ALTER TABLE `faqs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT for table `fatura`
+--
+ALTER TABLE `fatura`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `migrations`
+--
+ALTER TABLE `migrations`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `privacy_policy`
+--
+ALTER TABLE `privacy_policy`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `reservations`
+--
+ALTER TABLE `reservations`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT for table `zyrat`
+--
+ALTER TABLE `zyrat`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `fatura`
+--
+ALTER TABLE `fatura`
+  ADD CONSTRAINT `fatura_ibfk_1` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`),
+  ADD CONSTRAINT `fatura_ibfk_2` FOREIGN KEY (`zyra_id`) REFERENCES `zyrat` (`id`);
+
+--
+-- Constraints for table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD CONSTRAINT `reservations_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`zyra_id`) REFERENCES `zyrat` (`id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+Below is a production-ready starter you can paste into a fresh Laravel app. It includes:
+- Auth (Sanctum), Roles/Permissions (Spatie)
+- Offices, Services, Bookings, Documents, Invoices modules
+- Secure document storage (storage/app/private) + signed download route
+- Invoice PDF generation (DomPDF) via queue + Horizon
+- Activity Log, Rate Limiting, CSRF (framework default)
+- SecurityHeaders middleware (HSTS, X-Frame-Options, etc.)
+
+---
+## 0) Create project & install packages
+```bash
+composer create-project laravel/laravel noteria-laravel
+cd noteria-laravel
+php artisan key:generate
+
+composer require laravel/sanctum spatie/laravel-permission
+composer require laravel/cashier
+composer require barryvdh/laravel-dompdf
+composer require spatie/laravel-activitylog
+composer require laravel/horizon
+
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+php artisan vendor:publish --provider="Spatie\Activitylog\ActivitylogServiceProvider"
+php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
+php artisan vendor:publish --provider="Barryvdh\DomPDF\ServiceProvider"
+php artisan migrate
+```
+
+## 1) .env (example)
+```
+APP_NAME=Noteria
+APP_ENV=local
+APP_KEY=base64:...
+APP_DEBUG=false
+APP_URL=https://your-domain
+
+LOG_CHANNEL=stack
+LOG_LEVEL=info
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=emri_i_databazes_tende
+DB_USERNAME=emri_i_perdoruesit
+DB_PASSWORD=fjalekalimi
+
+SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+SESSION_SAME_SITE=strict
+
+QUEUE_CONNECTION=redis
+CACHE_DRIVER=redis
+BROADCAST_DRIVER=log
+
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.yourhost.com
+MAIL_PORT=587
+MAIL_USERNAME=...
+MAIL_PASSWORD=...
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=no-reply@your-domain
+MAIL_FROM_NAME="Noteria"
+
+# Cashier/Stripe
+STRIPE_KEY=pk_live_...
+STRIPE_SECRET=sk_live_...
+
+# Files
+FILESYSTEM_DISK=local
+PRIVATE_STORAGE_DISK=local
+```
+
+## 2) .gitignore (security additions)
+```
+/.env
+/storage/app/private/*
+!/storage/app/private/.gitkeep
+/storage/logs/*
+/vendor/
+/public/storage
+```
+
+Create folder for private docs:
+```bash
+mkdir -p storage/app/private/documents
+mkdir -p storage/app/private/invoices
+touch storage/app/private/.gitkeep
+```
+
+## 3) Security Headers Middleware
+**app/Http/Middleware/SecurityHeaders.php**
+```php
+<?php
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+
+class SecurityHeaders
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $response = $next($request);
+
+        $response->headers->set('X-Frame-Options', 'DENY');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('Referrer-Policy', 'no-referrer-when-downgrade');
+        $response->headers->set('Permissions-Policy', "camera=(), microphone=(), geolocation=()");
+        // Adjust CSP to your frontend needs
+        $response->headers->set('Content-Security-Policy', "default-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; frame-ancestors 'none'");
+        // HSTS only when HTTPS enabled
+        if ($request->isSecure()) {
+            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+        }
+        return $response;
+    }
+}
+```
+Register in **app/Http/Kernel.php** `$middleware` array:
+```php
+\App\Http\Middleware\SecurityHeaders::class,
+```
+
+## 4) Migrations
+**database/migrations/2025_01_01_000000_create_offices_table.php**
+```php
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('offices', function (Blueprint $t) {
+            $t->id();
+            $t->string('name');
+            $t->string('slug')->unique();
+            $t->string('city')->nullable();
+            $t->timestamps();
+        });
+    }
+    public function down(): void { Schema::dropIfExists('offices'); }
+};
+```
+
+**database/migrations/2025_01_01_000010_create_services_table.php**
+```php
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('services', function (Blueprint $t) {
+            $t->id();
+            $t->foreignId('office_id')->constrained()->cascadeOnDelete();
+            $t->string('title');
+            $t->unsignedInteger('duration_min');
+            $t->decimal('price', 10, 2);
+            $t->timestamps();
+        });
+    }
+    public function down(): void { Schema::dropIfExists('services'); }
+};
+```
+
+**database/migrations/2025_01_01_000020_create_bookings_table.php**
+```php
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('bookings', function (Blueprint $t) {
+            $t->id();
+            $t->uuid('uuid')->unique();
+            $t->foreignId('office_id')->constrained()->cascadeOnDelete();
+            $t->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $t->foreignId('service_id')->constrained()->cascadeOnDelete();
+            $t->timestamp('starts_at');
+            $t->enum('status', ['pending','confirmed','done','cancelled'])->default('pending');
+            $t->enum('payment_status', ['unpaid','paid','refunded'])->default('unpaid');
+            $t->timestamps();
+            $t->index(['office_id','starts_at']);
+        });
+    }
+    public function down(): void { Schema::dropIfExists('bookings'); }
+};
+```
+
+**database/migrations/2025_01_01_000030_create_documents_table.php**
+```php
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('documents', function (Blueprint $t) {
+            $t->id();
+            $t->foreignId('office_id')->constrained()->cascadeOnDelete();
+            $t->foreignId('booking_id')->nullable()->constrained()->nullOnDelete();
+            $t->string('path'); // stored under storage/app/private/documents
+            $t->string('mime');
+            $t->unsignedBigInteger('size');
+            $t->timestamps();
+        });
+    }
+    public function down(): void { Schema::dropIfExists('documents'); }
+};
+```
+
+**database/migrations/2025_01_01_000040_create_invoices_table.php**
+```php
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('invoices', function (Blueprint $t) {
+            $t->id();
+            $t->foreignId('booking_id')->constrained()->cascadeOnDelete();
+            $t->string('number')->unique();
+            $t->decimal('total', 10, 2);
+            $t->string('currency',3)->default('EUR');
+            $t->enum('status', ['draft','sent','paid','void'])->default('draft');
+            $t->string('pdf_path')->nullable(); // storage/app/private/invoices
+            $t->timestamps();
+        });
+    }
+    public function down(): void { Schema::dropIfExists('invoices'); }
+};
+```
+
+**database/migrations/2025_01_01_000050_add_roles_permissions.php**
+```php
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Spatie\Permission\Models\Role;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Role::findOrCreate('owner');
+        Role::findOrCreate('notary');
+        Role::findOrCreate('staff');
+        Role::findOrCreate('client');
+    }
+    public function down(): void {}
+};
+```
+
+## 5) Models
+**app/Models/Office.php**
+```php
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Office extends Model
+{
+    protected $fillable = ['name','slug','city'];
+    public function services(){ return $this->hasMany(Service::class); }
+    public function bookings(){ return $this->hasMany(Booking::class); }
+}
+```
+
+**app/Models/Service.php**
+```php
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Service extends Model
+{
+    protected $fillable = ['office_id','title','duration_min','price'];
+    public function office(){ return $this->belongsTo(Office::class); }
+}
+```
+
+**app/Models/Booking.php**
+```php
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+
+class Booking extends Model
+{
+    protected $fillable = ['uuid','office_id','user_id','service_id','starts_at','status','payment_status'];
+    protected $casts = ['starts_at'=>'datetime'];
+
+    protected static function booted(){
+        static::creating(function($m){ if(empty($m->uuid)) $m->uuid = (string) Str::uuid(); });
+    }
+
+    public function office(){ return $this->belongsTo(Office::class); }
+    public function user(){ return $this->belongsTo(User::class); }
+    public function service(){ return $this->belongsTo(Service::class); }
+    public function invoice(){ return $this->hasOne(Invoice::class); }
+}
+```
+
+**app/Models/Document.php**
+```php
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Document extends Model
+{
+    protected $fillable = ['office_id','booking_id','path','mime','size'];
+    public function office(){ return $this->belongsTo(Office::class); }
+    public function booking(){ return $this->belongsTo(Booking::class); }
+}
+```
+
+**app/Models/Invoice.php**
+```php
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Invoice extends Model
+{
+    protected $fillable = ['booking_id','number','total','currency','status','pdf_path'];
+    public function booking(){ return $this->belongsTo(Booking::class); }
+}
+```
+
+**app/Models/User.php** (add roles)
+```php
+<?php
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, Notifiable, HasRoles;
+    protected $fillable = ['name','email','password'];
+    protected $hidden = ['password','remember_token'];
+}
+```
+
+## 6) Policies (object-level access)
+**app/Policies/BookingPolicy.php**
+```php
+<?php
+namespace App\Policies;
+
+use App\Models\Booking;
+use App\Models\User;
+
+class BookingPolicy
+{
+    public function view(User $user, Booking $booking): bool
+    {   // owner/notary/staff may view only bookings in their office; clients only their own
+        if ($user->hasAnyRole(['owner','notary','staff'])) {
+            return $user->office_id === $booking->office_id; // assuming office_id on user
+        }
+        return $booking->user_id === $user->id;
+    }
+}
+```
+Register in **AuthServiceProvider**.
+
+## 7) Routes (API)
+**routes/api.php**
+```php
+<?php
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\InvoiceController;
+
+Route::post('/auth/register', [AuthController::class,'register']);
+Route::post('/auth/login', [AuthController::class,'login']);
+
+Route::middleware(['auth:sanctum'])->group(function(){
+    Route::post('/auth/logout', [AuthController::class,'logout']);
+
+    Route::get('/offices/{office}/slots', [BookingController::class,'slots']);
+    Route::post('/bookings', [BookingController::class,'store']);
+    Route::get('/bookings/{booking:uuid}', [BookingController::class,'show']);
+
+    Route::post('/documents/upload', [DocumentController::class,'upload']);
+    Route::get('/documents/{id}/download', [DocumentController::class,'download']);
+
+    Route::post('/invoices/{booking:uuid}/generate', [InvoiceController::class,'generate']);
+    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class,'downloadPdf']);
+});
+```
+
+## 8) Controllers
+**app/Http/Controllers/AuthController.php**
+```php
+<?php
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+
+class AuthController extends Controller
+{
+    public function register(Request $r){
+        $data = $r->validate([
+            'name'=>'required', 'email'=>'required|email|unique:users', 'password'=>'required|min:8'
+        ]);
+        $user = User::create([
+            'name'=>$data['name'],
+            'email'=>$data['email'],
+            'password'=>Hash::make($data['password'])
+        ]);
+        $user->assignRole('client');
+        return response()->json($user, 201);
+    }
+
+    public function login(Request $r){
+        $r->validate(['email'=>'required|email','password'=>'required']);
+        $user = User::where('email',$r->email)->first();
+        if(!$user || !Hash::check($r->password, $user->password)){
+            return response()->json(['message'=>'Invalid credentials'], 401);
+        }
+        $token = $user->createToken('api')->plainTextToken;
+        return response()->json(['token'=>$token]);
+    }
+
+    public function logout(Request $r){
+        $r->user()->currentAccessToken()->delete();
+        return response()->json(['message'=>'ok']);
+    }
+}
+```
+
+**app/Http/Controllers/BookingController.php**
+```php
+<?php
+namespace App\Http\Controllers;
+
+use App\Models\Booking;
+use App\Models\Office;
+use App\Models\Service;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+
+class BookingController extends Controller
+{
+    public function slots(Office $office, Request $r)
+    {   // demo: return 30-min slots for next 7 days excluding conflicts
+        $serviceId = $r->query('service_id');
+        $service = Service::where('office_id',$office->id)->findOrFail($serviceId);
+        $start = now(); $end = now()->addDays(7);
+        $interval = $service->duration_min;
+        $taken = Booking::where('office_id',$office->id)
+            ->whereBetween('starts_at', [$start,$end])
+            ->pluck('starts_at')->map(fn($d)=>$d->format('Y-m-d H:i'));
+        $slots=[]; $cur = $start->copy()->ceilMinute(15);
+        while($cur < $end){
+            $k = $cur->format('Y-m-d H:i');
+            if(!$taken->contains($k)) $slots[] = $k;
+            $cur->addMinutes($interval);
+        }
+        return ['slots'=>$slots];
+    }
+
+    public function store(Request $r)
+    {
+        $data = $r->validate([
+            'office_id'=>'required|exists:offices,id',
+            'service_id'=>'required|exists:services,id',
+            'starts_at'=>'required|date|after:now'
+        ]);
+        // conflict check
+        $has = Booking::where('office_id',$data['office_id'])
+            ->where('starts_at',$data['starts_at'])->exists();
+        abort_if($has, 422, 'Slot is taken');
+        $booking = Booking::create([
+            'office_id'=>$data['office_id'],
+            'service_id'=>$data['service_id'],
+            'user_id'=>$r->user()->id,
+            'starts_at'=>$data['starts_at'],
+        ]);
+        activity()->performedOn($booking)->causedBy($r->user())->log('booking.created');
+        return response()->json($booking, 201);
+    }
+
+    public function show(Booking $booking)
+    {
+        $this->authorize('view', $booking);
+        return $booking->load('service','office','invoice');
+    }
+}
+```
+
+**app/Http/Controllers/DocumentController.php**
+```php
+<?php
+namespace App\Http\Controllers;
+
+use App\Models\Document;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+class DocumentController extends Controller
+{
+    public function upload(Request $r)
+    {
+        $data = $r->validate([
+            'office_id'=>'required|exists:offices,id',
+            'booking_id'=>'nullable|exists:bookings,id',
+            'file'=>'required|file|max:5120' // 5MB
+        ]);
+        $file = $data['file'];
+        $path = $file->store('documents', ['disk'=>'local']); // storage/app/documents (we will move to private)
+        // move to private area
+        $privatePath = 'private/'.$path; // storage/app/private/documents/...
+        Storage::disk('local')->move($path, $privatePath);
+        $doc = Document::create([
+            'office_id'=>$data['office_id'],
+            'booking_id'=>$data['booking_id'] ?? null,
+            'path'=>$privatePath,
+            'mime'=>$file->getClientMimeType(),
+            'size'=>$file->getSize(),
+        ]);
+        activity()->performedOn($doc)->causedBy($r->user())->log('document.uploaded');
+        return response()->json($doc, 201);
+    }
+
+    public function download($id)
+    {
+        $doc = Document::findOrFail($id);
+        // TODO: implement office/user authorization check
+        $this->authorize('view', $doc); // create DocumentPolicy similarly to BookingPolicy
+        abort_unless(Storage::disk('local')->exists($doc->path), 404);
+        return response()->streamDownload(function() use ($doc){
+            echo Storage::disk('local')->get($doc->path);
+        }, basename($doc->path), [
+            'Content-Type'=>$doc->mime,
+            'Content-Disposition'=>'attachment; filename="'.basename($doc->path).'"'
+        ]);
+    }
+}
+```
+
+**app/Http/Controllers/InvoiceController.php**
+```php
+<?php
+namespace App\Http\Controllers;
+
+use App\Jobs\GenerateInvoicePdf;
+use App\Models\Booking;
+use App\Models\Invoice;
+use Illuminate\Http\Request;
+
+class InvoiceController extends Controller
+{
+    public function generate(Booking $booking, Request $r)
+    {
+        $this->authorize('view', $booking);
+        $invoice = Invoice::create([
+            'booking_id'=>$booking->id,
+            'number'=>'INV-'.date('Y').'-'.str_pad((string)(Invoice::count()+1),4,'0',STR_PAD_LEFT),
+            'total'=> $booking->service->price ?? 0,
+            'status'=>'draft'
+        ]);
+        GenerateInvoicePdf::dispatch($invoice);
+        return response()->json($invoice, 201);
+    }
+
+    public function downloadPdf(Invoice $invoice)
+    {
+        $this->authorize('view', $invoice->booking);
+        abort_unless($invoice->pdf_path && \Storage::disk('local')->exists($invoice->pdf_path), 404);
+        return response()->download(storage_path('app/'.$invoice->pdf_path), basename($invoice->pdf_path));
+    }
+}
+```
+
+## 9) Job: Generate PDF
+**app/Jobs/GenerateInvoicePdf.php**
+```php
+<?php
+namespace App\Jobs;
+
+use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
+
+class GenerateInvoicePdf implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    public function __construct(public Invoice $invoice) {}
+
+    public function handle(): void
+    {
+        $html = view('pdf.invoice', ['invoice'=>$this->invoice])->render();
+        $pdf = Pdf::loadHTML($html)->output();
+        $path = 'private/invoices/'.$this->invoice->number.'.pdf';
+        Storage::disk('local')->put($path, $pdf);
+        $this->invoice->update(['pdf_path'=>$path,'status'=>'sent']);
+    }
+}
+```
+
+## 10) View: resources/views/pdf/invoice.blade.php
+```php
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Invoice</title>
+<style>body{font-family:DejaVu Sans, sans-serif;font-size:12px;} .head{display:flex;justify-content:space-between}</style>
+</head><body>
+<div class="head">
+  <div><h2>NOTERIA</h2><small>Invoice {{ $invoice->number }}</small></div>
+  <div><small>{{ now()->toDateTimeString() }}</small></div>
+</div>
+<hr>
+<p><strong>Total:</strong> {{ number_format($invoice->total,2) }} {{ $invoice->currency }}</p>
+</body></html>
+```
+
+## 11) Horizon (queues)
+**config/horizon.php** (default is fine). Start workers:
+```bash
+php artisan horizon
+```
+Supervisor example (Ubuntu):
+```
+[program:noteria-horizon]
+command=php /var/www/noteria-laravel/artisan horizon
+numprocs=1
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/noteria-horizon.log
+```
+
+## 12) Rate limiting
+Examples in **app/Providers/RouteServiceProvider.php**:
+```php
+RateLimiter::for('api', function (Request $request) {
+    return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
+});
+```
+
+## 13) CORS
+**config/cors.php** – restrict origins to your domain if needed.
+
+## 14) Testing quick sanity
+```bash
+php artisan migrate:fresh --seed
+php artisan serve
+# Register/login -> Bearer token
+# POST /api/bookings, upload document, generate invoice, download invoice
+```
+
+## 15) Next steps (nice-to-have)
+- DocumentPolicy, InvoicePolicy similar to BookingPolicy
+- Webhooks (Stripe) to mark `payment_status=paid`
+- Signed temporary URLs for downloads (alternative approach)
+- Multi-tenant via office_id on User or subdomains (tenancy package)
+- Observers for audit events (Spatie Activity Log used already)
+- Frontend scaffolding (Vue/React) for booking UI

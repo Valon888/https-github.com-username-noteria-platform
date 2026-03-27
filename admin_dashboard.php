@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Konfigurimi i raportimit të gabimeve
 ini_set('display_errors', 0); // Mos shfaq gabime në faqe
 ini_set('log_errors', 1);     // Log gabimet në server
@@ -12,6 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once 'confidb.php';
+require_once 'ads_widget.php';
 
 // Kontrollo nëse përdoruesi është i kyçur dhe ka rolin e duhur
 if (!isset($_SESSION['user_id']) || $_SESSION['roli'] !== 'admin') {
@@ -21,9 +22,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['roli'] !== 'admin') {
 
 // Merr të dhënat e administratorit
 $admin_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT emri, mbiemri, email FROM users WHERE id = ? AND roli = 'admin'");
+
+// Provo të marrësh të dhënat nga tabela admins
+$stmt = $pdo->prepare("SELECT emri, email FROM admins WHERE id = ?");
 $stmt->execute([$admin_id]);
 $admin = $stmt->fetch();
+
+// Nëse nuk gjendet në admins, provo në users (për pajtueshmëri të vjetër)
+if (!$admin) {
+    $stmt = $pdo->prepare("SELECT emri, mbiemri, email FROM users WHERE id = ? AND roli = 'admin'");
+    $stmt->execute([$admin_id]);
+    $admin = $stmt->fetch();
+}
 
 if (!$admin) {
     header("Location: logout.php");
@@ -137,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Paneli i Administratorit | Noteria</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         :root {
             --primary: #2d6cdf;
@@ -664,6 +674,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="logo">
+                <img src="../images/Emblem_of_the_Republic_of_Kosovo.svg.png" alt="Kosovo Emblem" style="width: 50px; height: auto; margin-bottom: 10px;">
                 <h1>Noteria <span>Admin</span></h1>
             </div>
             
@@ -729,6 +740,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
                     <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
+
+            <!-- Ads Banner -->
+            <?php echo render_ads_banner($pdo); ?>
             
             <!-- Stats Overview -->
             <div class="stats-grid" id="dashboard">
@@ -1188,5 +1202,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
             });
         });
     </script>
+
+    <!-- Ads Display -->
+    <?php echo render_ads_cards($pdo, 3); ?>
+    <?php echo render_ads_popup($pdo); ?>
+    <script src="track_ad_click.php"></script>
 </body>
 </html>

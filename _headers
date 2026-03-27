@@ -1,0 +1,41 @@
+# Cloudflare Configuration for Noteria Platform
+# This file should be placed in the root directory when deploying to production
+
+# Cloudflare Pages Configuration
+# _headers file for Cloudflare Pages
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; script-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self';
+
+# Cache static assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Cache images
+/images/*
+  Cache-Control: public, max-age=86400
+
+# Don't cache PHP files
+/*.php
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Cloudflare Workers Configuration (if using)
+# This would be configured in Cloudflare Dashboard
+
+# Cloudflare Access (Zero Trust) - Optional
+# Configure in Cloudflare Dashboard for additional security
+
+# Cloudflare Rate Limiting Rules (example)
+/api/*
+  Rate-Limit: 100 requests per minute
+
+# Cloudflare WAF Rules
+# Configure custom WAF rules in Cloudflare Dashboard to protect against common attacks
+
+# Cloudflare Analytics Token
+# Replace 'your-cloudflare-analytics-token' with actual token from Cloudflare Dashboard

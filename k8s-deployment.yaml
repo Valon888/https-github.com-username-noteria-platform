@@ -1,0 +1,407 @@
+---
+# Kubernetes ConfigMap - Application Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: noteria-config
+  namespace: production
+data:
+  APP_ENV: "production"
+  DB_POOL_SIZE: "100"
+  CACHE_ENABLED: "true"
+  LOG_LEVEL: "info"
+
+---
+# Kubernetes Secret - Database Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: noteria-secrets
+  namespace: production
+type: Opaque
+stringData:
+  DB_PRIMARY_HOST: "noteria-primary.c9akciq32.us-east-1.rds.amazonaws.com"
+  DB_REPLICA_HOST: "noteria-replica-1.c9akciq32.us-east-1.rds.amazonaws.com"
+  DB_USER: "noteria_user"
+  DB_PASSWORD: "your-secure-password-here"
+  DB_NAME: "noteria"
+  REDIS_HOST: "noteria-redis.abcdef.ng.0001.use1.cache.amazonaws.com"
+  REDIS_PASSWORD: "your-redis-password"
+
+---
+# Kubernetes Service - API Load Balancer
+apiVersion: v1
+kind: Service
+metadata:
+  name: noteria-api-service
+  namespace: production
+  labels:
+    app: noteria-api
+spec:
+  type: LoadBalancer
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  selector:
+    app: noteria-api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9000
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 9000
+    protocol: TCP
+
+---
+# Kubernetes Deployment - API Servers
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: noteria-api
+  namespace: production
+  labels:
+    app: noteria-api
+spec:
+  replicas: 20  # Start with 20 pods
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 5
+      maxUnavailable: 2
+  selector:
+    matchLabels:
+      app: noteria-api
+  template:
+    metadata:
+      labels:
+        app: noteria-api
+        version: "1.0"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - noteria-api
+              topologyKey: kubernetes.io/hostname
+      
+      containers:
+      - name: noteria-php
+        image: your-registry.dkr.ecr.us-east-1.amazonaws.com/noteria:1.0.0
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - containerPort: 9000
+          name: php-fpm
+          protocol: TCP
+        
+        env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: noteria-config
+              key: APP_ENV
+        - name: DB_PRIMARY_HOST
+          valueFrom:
+            secretKeyRef:
+              name: noteria-secrets
+              key: DB_PRIMARY_HOST
+        - name: DB_REPLICA_HOST
+          valueFrom:
+            secretKeyRef:
+              name: noteria-secrets
+              key: DB_REPLICA_HOST
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: noteria-secrets
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: noteria-secrets
+              key: DB_PASSWORD
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: noteria-secrets
+              key: DB_NAME
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: noteria-secrets
+              key: REDIS_HOST
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: noteria-secrets
+              key: REDIS_PASSWORD
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+            ephemeral-storage: 5Gi
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 9000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        volumeMounts:
+        - name: logs
+          mountPath: /var/www/noteria/logs
+        - name: tmp
+          mountPath: /tmp
+        - name: php-config
+          mountPath: /usr/local/etc/php/conf.d/custom.ini
+          subPath: php.ini
+        
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 33  # www-data
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: php-config
+        configMap:
+          name: php-config
+      
+      serviceAccountName: noteria-api
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: noteria-api
+  namespace: production
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: noteria-api-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: noteria-api
+  minReplicas: 20
+  maxReplicas: 500
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 10
+        periodSeconds: 15
+      selectPolicy: Max
+
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: noteria-api-pdb
+  namespace: production
+spec:
+  minAvailable: 10
+  selector:
+    matchLabels:
+      app: noteria-api
+
+---
+# NetworkPolicy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: noteria-api-network-policy
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: noteria-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: production
+    - podSelector:
+        matchLabels:
+          app: nginx-ingress
+    ports:
+    - protocol: TCP
+      port: 9000
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 3306  # MySQL
+    - protocol: TCP
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 443   # HTTPS
+    - protocol: TCP
+      port: 80    # HTTP
+    - protocol: UDP
+      port: 53    # DNS
+
+---
+# Nginx Ingress Controller
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: noteria-api-ingress
+  namespace: production
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  tls:
+  - hosts:
+    - noteria.kosove.gov.al
+    - api.noteria.kosove.gov.al
+    secretName: noteria-tls-cert
+  rules:
+  - host: noteria.kosove.gov.al
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: noteria-api-service
+            port:
+              number: 80
+  - host: api.noteria.kosove.gov.al
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: noteria-api-service
+            port:
+              number: 80
+
+---
+# Prometheus ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: noteria-api-monitor
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: noteria-api
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# Vertical Pod Autoscaler (VPA)
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: noteria-api-vpa
+  namespace: production
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: noteria-api
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: noteria-php
+      minAllowed:
+        cpu: 250m
+        memory: 256Mi
+      maxAllowed:
+        cpu: 4000m
+        memory: 4Gi

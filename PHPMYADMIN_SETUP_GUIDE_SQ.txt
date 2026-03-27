@@ -1,0 +1,129 @@
+📋 UDHËZIM PËRFUNDIMTAR - KONFIGURIMI I SISTEMIT PËRMES PHPMYADMIN
+=======================================================================
+
+HAPI 1: HAPE PHPMYADMIN
+------------------------
+1. Shko në: http://localhost/phpmyadmin
+2. Login (nëse kërkohet)
+
+HAPI 2: KRIJO BAZËN E TË DHËNAVE
+--------------------------------
+1. Kliko "Baza e të dhënave" në menu
+2. Shkruaj emrin: "noteria"
+3. Encoding: utf8mb4_unicode_ci
+4. Kliko "Krijo"
+
+HAPI 3: ZGJIDH BAZËN E TË DHËNAVE
+---------------------------------
+1. Kliko në "noteria" në panelin e majtë
+2. Shko në skedën "SQL"
+
+HAPI 4: KOPJO SQL SCHEMAT
+-------------------------
+1. Hap dosjen: D:\Laragon\www\noteria\db\noteria_staff_schema.sql
+2. Kopjo GJITHË përmbajtjen (Ctrl+A, Ctrl+C)
+3. Pastezo në phpMyAdmin SQL tab (Ctrl+V)
+4. Kliko "Execute" (ose Ctrl+Enter)
+
+HAPI 5: VENDOS ORARIT E PUNËS
+-----------------------------
+KOPJO DH PASTEZO KËTË SQL NË PHPMYADMIN:
+
+-- ============================================
+-- VENDOSJA E ORAREVE PËTR MARS 19, 2026
+-- ============================================
+
+-- Deaktivizo orarit e vjetër
+UPDATE `oraret` 
+SET `aktiv` = 0 
+WHERE `data_mbarimit` IS NULL 
+  AND `data_fillimit` < '2026-03-19';
+
+-- Krijo orarit e reja për të gjithë punonjesit aktivë
+INSERT INTO `oraret` (
+  `punonjes_id`,
+  `data_fillimit`,
+  `data_mbarimit`,
+  `hene_fillim`,
+  `hene_mbarim`,
+  `marte_fillim`,
+  `marte_mbarim`,
+  `merkure_fillim`,
+  `merkure_mbarim`,
+  `enjte_fillim`,
+  `enjte_mbarim`,
+  `premte_fillim`,
+  `premte_mbarim`,
+  `shtune_fillim`,
+  `shtune_mbarim`,
+  `diele_fillim`,
+  `diele_mbarim`,
+  `pershkrimi`,
+  `krijuar_nga`,
+  `aktiv`
+)
+SELECT
+  `id`,
+  '2026-03-19' AS `data_fillimit`,
+  NULL AS `data_mbarimit`,
+  '08:00:00' AS `hene_fillim`,
+  '16:00:00' AS `hene_mbarim`,
+  '08:00:00' AS `marte_fillim`,
+  '16:00:00' AS `marte_mbarim`,
+  '08:00:00' AS `merkure_fillim`,
+  '16:00:00' AS `merkure_mbarim`,
+  '08:00:00' AS `enjte_fillim`,
+  '16:00:00' AS `enjte_mbarim`,
+  '08:00:00' AS `premte_fillim`,
+  '16:00:00' AS `premte_mbarim`,
+  NULL AS `shtune_fillim`,
+  NULL AS `shtune_mbarim`,
+  NULL AS `diele_fillim`,
+  NULL AS `diele_mbarim`,
+  'Orari i rregullt 08:00-16:00 duke filluar pas Festa e Fitër Bajramit' AS `pershkrimi`,
+  1 AS `krijuar_nga`,
+  1 AS `aktiv`
+FROM `punonjesit`
+WHERE `statusi` = 'aktiv'
+  AND (`data_mbarimit` IS NULL OR `data_mbarimit` >= '2026-03-19');
+
+-- Verifikim - Shfaq orarit e reja të vendosura
+SELECT 
+  p.emri,
+  p.mbiemri,
+  o.data_fillimit,
+  CONCAT(o.hene_fillim, ' - ', o.hene_mbarim) AS 'Orari (Hënë-Premte)',
+  CASE 
+    WHEN o.shtune_fillim IS NULL THEN 'Pushim'
+    ELSE CONCAT(o.shtune_fillim, ' - ', o.shtune_mbarim)
+  END AS 'Shtunë',
+  CASE 
+    WHEN o.diele_fillim IS NULL THEN 'Pushim'
+    ELSE CONCAT(o.diele_fillim, ' - ', o.diele_mbarim)
+  END AS 'Diele',
+  o.pershkrimi
+FROM `oraret` o
+JOIN `punonjesit` p ON o.punonjes_id = p.id
+WHERE o.data_fillimit = '2026-03-19'
+  AND o.aktiv = 1
+ORDER BY p.emri, p.mbiemri;
+
+HAPI 6: VERIFIKIMI
+------------------
+Pas ekzekutimit të SQL-it, duhet të shohësh:
+✓ Tabela "oraret" me rreshta të reja
+✓ Data fillimit: 2026-03-19
+✓ Orari: 08:00 - 16:00
+✓ Shtunë dhe Diele: NULL (Pushim)
+
+HAPI 7: PËRDOR APLIKACIONIN
+----------------------------
+Tani mund ta hapësh: http://localhost/noteria/dashboard.php
+- Kalendari do të tregojë datën 18 Mars si mbyllur (Festa e Fitër Bajramit)
+- Datën 19 Mars do të jetë e hapur me orarir 08:00-16:00
+
+
+PËRVEÇ NË:
+- Nëse mysql shfaq error "already exists", është normal - tabelat ekzistojnë
+- Nëse INSERT shfaq error "0 rows affected", do të thotë nuk ka punonjës aktiv
+- Për testimmin, shto punonjës në tabelën "punonjesit" përpara vendosjes së orareve

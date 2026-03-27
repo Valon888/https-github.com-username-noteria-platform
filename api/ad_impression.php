@@ -1,4 +1,4 @@
-<?php
+-<?php
 // filepath: api/ad_impression.php
 // Track advertisement impressions
 

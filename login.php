@@ -142,10 +142,10 @@ if (isset($_SERVER["REQUEST_METHOD"]) && $_SERVER["REQUEST_METHOD"] === "POST") 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="Kyçuni në platformën Noteria - Sistemi i sigurt SaaS për zyrat noteriale në Kosovë">
-    <title>Kyçuni | Noteria - Platforma SaaS për Zyrat Noteriale</title>
+    <title>Kyçuni | e-Noteria - Platforma SaaS për Zyrat Noteriale</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
@@ -638,7 +638,7 @@ if (isset($_SERVER["REQUEST_METHOD"]) && $_SERVER["REQUEST_METHOD"] === "POST") 
             <!-- Logo -->
             <div class="logo-container">
                 <img src="images/pngwing.com (1).png" class="logo-icon" alt="Noteria Logo">
-                <h2>Noteria</h2>
+                <h2>e-Noteria</h2>
                 <p class="subtitle">Platforma SaaS për Zyrat Noteriale</p>
             </div>
 

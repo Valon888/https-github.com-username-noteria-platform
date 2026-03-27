@@ -47,36 +47,29 @@ if (isset($_GET['data']) && isset($_GET['ss1']) && isset($_GET['ss2'])) {
             try {
                 $conn = connectToDatabase();
                 
-                // First, get the user_id and service_type for this payment
-                $query = "SELECT user_id, service_type FROM payments WHERE payment_id = ?";
+                // Update payment status
+                $query = "UPDATE payments SET status = ?, updated_at = NOW() WHERE transaction_id = ? OR id = ?";
                 $stmt = $conn->prepare($query);
-                $stmt->bind_param("s", $paymentId);
-                $stmt->execute();
-                $result = $stmt->get_result();
+                $stmt->execute([$status, $paymentId, $paymentId]);
                 
-                if ($result->num_rows > 0) {
-                    $paymentData = $result->fetch_assoc();
-                    $userId = $paymentData['user_id'];
-                    $serviceType = $paymentData['service_type'];
+                // Përditëso reservation payment status nëse ka
+                if ($status === 'paid') {
+                    $check_query = "SELECT user_id, reservation_id FROM payments WHERE transaction_id = ? OR id = ? LIMIT 1";
+                    $check_stmt = $conn->prepare($check_query);
+                    $check_stmt->execute([$paymentId, $paymentId]);
+                    $result = $check_stmt->get_result();
                     
-                    // Now update the payment status
-                    $updateQuery = "UPDATE payments SET status = ?, completion_date = NOW() ";
-                    
-                    // If status is completed and service is video_consultation, set expiry time
-                    if ($status === 'completed' && $serviceType === 'video_consultation') {
-                        $updateQuery .= ", expiry_date = DATE_ADD(NOW(), INTERVAL 30 MINUTE) ";
+                    if ($result->num_rows > 0) {
+                        $payment_row = $result->fetch_assoc();
+                        if ($payment_row['reservation_id']) {
+                            $update_res = $conn->prepare("UPDATE reservations SET payment_status = 'paid', updated_at = NOW() WHERE id = ? AND user_id = ?");
+                            $update_res->execute([$payment_row['reservation_id'], $payment_row['user_id']]);
+                        }
                     }
-                    
-                    $updateQuery .= "WHERE payment_id = ?";
-                    $stmt = $conn->prepare($updateQuery);
-                    $stmt->bind_param("ss", $status, $paymentId);
-                    $stmt->execute();
-                    
-                    // Log the successful update
-                    error_log("Payment status updated for $paymentId: $status");
                 }
                 
-                $conn->close();
+                // Log the successful update
+                error_log("Payment status updated for $paymentId: $status");
                 
                 // Return success response to Paysera
                 header('Content-Type: text/plain');
