@@ -78,17 +78,23 @@ function callClaudeChat($user_message) {
         'messages' => [['role' => 'user', 'content' => $user_message]],
     ];
 
+    $headers = [
+        'Content-Type: application/json',
+        'x-api-key: ' . $api_key,
+        'anthropic-version: 2023-06-01',
+    ];
+    // Keys that are not scoped to a workspace must name one
+    if ($workspace = chatbotEnv('ANTHROPIC_WORKSPACE_ID')) {
+        $headers[] = 'anthropic-workspace-id: ' . $workspace;
+    }
+
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($payload),
         CURLOPT_TIMEOUT => 20,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'x-api-key: ' . $api_key,
-            'anthropic-version: 2023-06-01',
-        ],
+        CURLOPT_HTTPHEADER => $headers,
     ]);
     $result = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);

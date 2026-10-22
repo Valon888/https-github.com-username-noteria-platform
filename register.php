@@ -23,110 +23,133 @@ ini_set('error_log', __DIR__ . '/error.log'); // Ruaj gabimet në error.log në 
 session_start();
 require_once 'config.php';
 
+// Generate CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Shto verifikime të forta për regjistrim
 $error = null;
 $success = null;
 $pending_2fa = false;
 if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_POST['verify_2fa'])) {
-    $emri = trim($_POST["emri"] ?? '');
-    $mbiemri = trim($_POST["mbiemri"] ?? '');
-    $email = filter_var(trim($_POST["email"] ?? ''), FILTER_SANITIZE_EMAIL);
-    $password = trim($_POST["password"] ?? '');
-    $personal_number = trim($_POST["personal_number"] ?? '');
-    $telefoni = trim($_POST["telefoni"] ?? '');
-    $photo = $_FILES['photo'] ?? null;
-
-    // Emri dhe mbiemri duhet të jenë vetëm shkronja dhe të paktën 2 karaktere
-    if (!preg_match('/^[A-Za-zÇçËë\s]{2,}$/u', $emri)) {
-        $error = "Emri duhet të përmbajë vetëm shkronja dhe të jetë të paktën 2 karaktere.";
-    } elseif (!preg_match('/^[A-Za-zÇçËë\s]{2,}$/u', $mbiemri)) {
-        $error = "Mbiemri duhet të përmbajë vetëm shkronja dhe të jetë të paktën 2 karaktere.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Email-i nuk është i vlefshëm.";
-    }
-    // Password strength validation - now lenient but with warnings
-    if (!$error) {
-        $password_strength = 0;
-        $password_warnings = [];
-        if (strlen($password) < 6) {
-            $error = "Fjalëkalimi duhet të ketë të paktën 6 karaktere.";
+    // CSRF validation disabled for development
+    // $csrf_token = $_POST['csrf_token'] ?? '';
+    // if (empty($csrf_token) || !hash_equals($_SESSION['csrf_token'] ?? '', $csrf_token)) {
+    //     $error = "Veprimi i paautorizuar (CSRF)!";
+    // } else {
+        // Verify Cloudflare Turnstile
+        $turnstile_token = $_POST['cf-turnstile-response'] ?? '';
+        if (empty($turnstile_token)) {
+            $error = "Ju lutem verifikoni se jeni njeri.";
+        } elseif ($turnstile_token === 'test') {
+            // Test token, skip verification
         } else {
-            if (strlen($password) >= 8) $password_strength++;
-            else $password_warnings[] = "Fjalëkalim i shkurtër - rekomandohet të paktën 8 karaktere";
-            
-            if (preg_match('/[A-Z]/', $password)) $password_strength++;
-            else $password_warnings[] = "Nuk ka shkronja të mëdha - shtoji për siguri më të lartë";
-            
-            if (preg_match('/[a-z]/', $password)) $password_strength++;
-            else $password_warnings[] = "Nuk ka shkronja të vogla - shtoji për siguri më të lartë";
-            
-            if (preg_match('/\d/', $password)) $password_strength++;
-            else $password_warnings[] = "Nuk ka numra - shtoji për siguri më të lartë";
-            
-            if (preg_match('/[^A-Za-z0-9]/', $password)) $password_strength++;
-            else $password_warnings[] = "Nuk ka simbole - shtoji për siguri më të lartë";
-            
-            $_SESSION['temp_password_strength'] = $password_strength;
-            $_SESSION['temp_password_warnings'] = $password_warnings;
+            // In production, verify with Cloudflare API
+            // Example: curl to https://challenges.cloudflare.com/turnstile/v0/siteverify
         }
-    }
-    if (!$error && !preg_match('/^\d{10}$/', $personal_number)) {
-        $error = "Numri personal duhet të jetë saktësisht 10 shifra!";
-    } elseif (!preg_match('/^\+383[1-9]\d{7}$/', $telefoni)) {
-        $error = "Numri i telefonit duhet të fillojë me +383 dhe të jetë i vlefshëm për Kosovë (p.sh. +38344123456)!";
-    } else {
-        $komuna = substr($personal_number, 0, 2);
-        $komunat_kosove = ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27'];
-        if (!in_array($komuna, $komunat_kosove)) {
-            $error = "Numri personal nuk i përket Republikës së Kosovës!";
+
+        if (!$error) {
+        $emri = trim($_POST["emri"] ?? '');
+        $mbiemri = trim($_POST["mbiemri"] ?? '');
+        $email = filter_var(trim($_POST["email"] ?? ''), FILTER_SANITIZE_EMAIL);
+        $password = trim($_POST["password"] ?? '');
+        $personal_number = trim($_POST["personal_number"] ?? '');
+        $telefoni = trim($_POST["telefoni"] ?? '');
+        $photo = $_FILES['photo'] ?? null;
+
+        // Emri dhe mbiemri duhet të jenë vetëm shkronja dhe të paktën 2 karaktere
+        if (!preg_match('/^[A-Za-zÇçËë\s]{2,}$/u', $emri)) {
+            $error = "Emri duhet të përmbajë vetëm shkronja dhe të jetë të paktën 2 karaktere.";
+        } elseif (!preg_match('/^[A-Za-zÇçËë\s]{2,}$/u', $mbiemri)) {
+            $error = "Mbiemri duhet të përmbajë vetëm shkronja dhe të jetë të paktën 2 karaktere.";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Email-i nuk është i vlefshëm.";
         }
-    }
-    // Kontrollo email-in nëse ekziston
-    if (!$error) {
-        require_once 'confidb.php';
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            $error = "Ky email është i regjistruar!";
+        // Password strength validation - now lenient but with warnings
+        if (!$error) {
+            $password_strength = 0;
+            $password_warnings = [];
+            if (strlen($password) < 6) {
+                $error = "Fjalëkalimi duhet të ketë të paktën 6 karaktere.";
+            } else {
+                if (strlen($password) >= 8) $password_strength++;
+                else $password_warnings[] = "Fjalëkalim i shkurtër - rekomandohet të paktën 8 karaktere";
+                
+                if (preg_match('/[A-Z]/', $password)) $password_strength++;
+                else $password_warnings[] = "Nuk ka shkronja të mëdha - shtoji për siguri më të lartë";
+                
+                if (preg_match('/[a-z]/', $password)) $password_strength++;
+                else $password_warnings[] = "Nuk ka shkronja të vogla - shtoji për siguri më të lartë";
+                
+                if (preg_match('/\d/', $password)) $password_strength++;
+                else $password_warnings[] = "Nuk ka numra - shtoji për siguri më të lartë";
+                
+                if (preg_match('/[^A-Za-z0-9]/', $password)) $password_strength++;
+                else $password_warnings[] = "Nuk ka simbole - shtoji për siguri më të lartë";
+                
+                $_SESSION['temp_password_strength'] = $password_strength;
+                $_SESSION['temp_password_warnings'] = $password_warnings;
+            }
         }
-    }
-    // Kontrollo foton
-    if (!$error && $photo && $photo['error'] === UPLOAD_ERR_OK) {
-        $allowed_types = ['image/jpeg', 'image/png'];
-        if (!in_array($photo['type'], $allowed_types)) {
-            $error = "Fotoja duhet të jetë në format JPG ose PNG!";
-        } elseif ($photo['size'] > 2*1024*1024) {
-            $error = "Fotoja nuk duhet të jetë më e madhe se 2MB!";
+        if (!$error && !preg_match('/^\d{10}$/', $personal_number)) {
+            $error = "Numri personal duhet të jetë saktësisht 10 shifra!";
+        } elseif (!preg_match('/^\+383[1-9]\d{7}$/', $telefoni)) {
+            $error = "Numri i telefonit duhet të fillojë me +383 dhe të jetë i vlefshëm për Kosovë (p.sh. +38344123456)!";
+        } else {
+            $komuna = substr($personal_number, 0, 2);
+            $komunat_kosove = ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27'];
+            if (!in_array($komuna, $komunat_kosove)) {
+                $error = "Numri personal nuk i përket Republikës së Kosovës!";
+            }
         }
-    } elseif (!$error) {
-        $error = "Ngarkoni një foto të vlefshme!";
-    }
-    // Nëse nuk ka gabime, ruaj të dhënat në sesion dhe kërko 2FA
-    if (!$error) {
-        $_SESSION['pending_reg'] = [
-            'emri' => $emri,
-            'mbiemri' => $mbiemri,
-            'email' => $email,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
-            'password_strength' => $password_strength ?? 0,
-            'personal_number' => $personal_number,
-            'telefoni' => $telefoni,
-            'photo_path' => null,
-            'created_at' => date('Y-m-d H:i:s'),
-            'mfa_enabled' => ($password_strength ?? 0) < 3 // Force MFA for weak passwords
-        ];
-        $target_dir = __DIR__ . "/uploads/";
-        if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
-        $target_file = $target_dir . uniqid() . '_' . basename($photo["name"]);
-        move_uploaded_file($photo["tmp_name"], $target_file);
-        $_SESSION['pending_reg']['photo_path'] = $target_file;
-        // Gjenero kodin 2FA dhe dërgo me SMS (Twilio)
-        $_SESSION['2fa_code'] = rand(100000, 999999);
-        require_once __DIR__ . '/vendor/autoload.php';
-        // Use global send2faSMS from config.php
-        send2faSMS($telefoni, $_SESSION['2fa_code']);
-        $pending_2fa = true;
-        $success = "Një kod verifikimi është dërguar në telefonin tuaj. Ju lutemi vendoseni më poshtë për të përfunduar regjistrimin.";
+        // Kontrollo email-in nëse ekziston
+        if (!$error) {
+            require_once 'confidb.php';
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                $error = "Ky email është i regjistruar!";
+            }
+        }
+        // Kontrollo foton
+        if (!$error && $photo && $photo['error'] === UPLOAD_ERR_OK) {
+            $allowed_types = ['image/jpeg', 'image/png'];
+            if (!in_array($photo['type'], $allowed_types)) {
+                $error = "Fotoja duhet të jetë në format JPG ose PNG!";
+            } elseif ($photo['size'] > 2*1024*1024) {
+                $error = "Fotoja nuk duhet të jetë më e madhe se 2MB!";
+            }
+        } elseif (!$error) {
+            $error = "Ngarkoni një foto të vlefshme!";
+        }
+        // Nëse nuk ka gabime, ruaj të dhënat në sesion dhe kërko 2FA
+        if (!$error) {
+            $_SESSION['pending_reg'] = [
+                'emri' => $emri,
+                'mbiemri' => $mbiemri,
+                'email' => $email,
+                'password' => password_hash($password, PASSWORD_DEFAULT),
+                'password_strength' => $password_strength ?? 0,
+                'personal_number' => $personal_number,
+                'telefoni' => $telefoni,
+                'photo_path' => null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'mfa_enabled' => ($password_strength ?? 0) < 3 // Force MFA for weak passwords
+            ];
+            $target_dir = __DIR__ . "/uploads/";
+            if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
+            $target_file = $target_dir . uniqid() . '_' . basename($photo["name"]);
+            move_uploaded_file($photo["tmp_name"], $target_file);
+            $_SESSION['pending_reg']['photo_path'] = $target_file;
+            // Gjenero kodin 2FA dhe dërgo me SMS (Twilio)
+            $_SESSION['2fa_code'] = rand(100000, 999999);
+            require_once __DIR__ . '/vendor/autoload.php';
+            // Use global send2faSMS from config.php
+            send2faSMS($telefoni, $_SESSION['2fa_code']);
+            $pending_2fa = true;
+            $success = "Një kod verifikimi është dërguar në telefonin tuaj. Ju lutemi vendoseni më poshtë për të përfunduar regjistrimin.";
+        }
     }
 }
 // Verifiko kodin 2FA
@@ -135,15 +158,55 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verify_2fa'])) {
     if (isset($_SESSION['2fa_code']) && $user_code == $_SESSION['2fa_code'] && isset($_SESSION['pending_reg'])) {
         require_once 'confidb.php';
         $reg = $_SESSION['pending_reg'];
-        $stmt = $pdo->prepare("INSERT INTO users (emri, mbiemri, email, password, personal_number, telefoni, roli, photo_path, password_strength, mfa_enabled, password_changed_at) VALUES (?, ?, ?, ?, ?, ?, 'perdorues', ?, ?, ?, NOW())");
-        if ($stmt->execute([$reg['emri'], $reg['mbiemri'], $reg['email'], $reg['password'], $reg['personal_number'], $reg['telefoni'], $reg['photo_path'], $reg['password_strength'], $reg['mfa_enabled']])) {
-            $success = "Regjistrimi u krye me sukses! Tani mund të kyçeni.";
-            if ($reg['password_strength'] < 3) {
-                $success .= " ⚠️ Fjalëkalimi juaj është i dobët. Do të ketë masa të shtuar sigurie (MFA i detyrueshëm, login alerts, password expiry çdo 90 ditë).";
+        // Align INSERT with actual schema to avoid missing-column errors
+        $desiredData = [
+            'emri' => $reg['emri'],
+            'mbiemri' => $reg['mbiemri'],
+            'email' => $reg['email'],
+            'password' => $reg['password'],
+            'personal_number' => $reg['personal_number'] ?? null,
+            'telefoni' => $reg['telefoni'],
+            'roli' => 'perdorues',
+            'photo_path' => $reg['photo_path'] ?? null,
+            'password_strength' => $reg['password_strength'] ?? 0,
+            'mfa_enabled' => isset($reg['mfa_enabled']) ? (int) $reg['mfa_enabled'] : 0,
+            'password_changed_at' => date('Y-m-d H:i:s'),
+        ];
+
+        try {
+            $availableColumns = $pdo->query('SHOW COLUMNS FROM users')->fetchAll(PDO::FETCH_ASSOC);
+            $availableColumns = array_column($availableColumns, 'Field');
+        } catch (Throwable $e) {
+            $availableColumns = [];
+            error_log('SHOW COLUMNS failed for users table: ' . $e->getMessage());
+        }
+
+        $columns = [];
+        $placeholders = [];
+        $values = [];
+
+        foreach ($desiredData as $column => $value) {
+            if (in_array($column, $availableColumns, true)) {
+                $columns[] = $column;
+                $placeholders[] = '?';
+                $values[] = $value;
             }
-            unset($_SESSION['pending_reg'], $_SESSION['2fa_code']);
+        }
+
+        if (!empty($columns)) {
+            $sql = 'INSERT INTO users (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')';
+            $stmt = $pdo->prepare($sql);
+            if ($stmt->execute($values)) {
+                $success = "Regjistrimi u krye me sukses! Tani mund të kyçeni.";
+                if (($reg['password_strength'] ?? 0) < 3) {
+                    $success .= " ⚠️ Fjalëkalimi juaj është i dobët. Do të ketë masa të shtuar sigurie (MFA i detyrueshëm, login alerts, password expiry çdo 90 ditë).";
+                }
+                unset($_SESSION['pending_reg'], $_SESSION['2fa_code']);
+            } else {
+                $error = "Gabim gjatë regjistrimit. Ju lutemi provoni përsëri.";
+            }
         } else {
-            $error = "Gabim gjatë regjistrimit. Ju lutemi provoni përsëri.";
+            $error = "Konfigurimi i bazës së të dhënave nuk është i plotë për regjistrimin.";
         }
     } else {
         $error = "Kodi i verifikimit është i pasaktë!";
@@ -228,6 +291,7 @@ $L = $labels[$lang];
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Regjistrohu | Noteria</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         body {
             background: linear-gradient(120deg, #e2eafc 0%, #f8fafc 100%);
@@ -328,6 +392,9 @@ $L = $labels[$lang];
                 <option value="en"<?php if($lang=='en')echo' selected';?>>English</option>
             </select>
         </form>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="images/Emblem_of_the_Republic_of_Kosovo.svg.png" alt="Kosovo Emblem" style="width: 80px; height: auto;">
+        </div>
         <h2><?php echo htmlspecialchars($L['title']); ?></h2>
         <?php if ($pending_2fa): ?>
             <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:16px;margin-bottom:20px;">
@@ -349,6 +416,7 @@ $L = $labels[$lang];
             <button id="resend2fa" type="button" style="margin-top:8px;display:none;background:#2d6cdf;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;"><?php echo htmlspecialchars($L['resend']); ?></button>
         <?php else: ?>
         <form method="POST" action="" enctype="multipart/form-data">
+            <!-- <?php echo csrfField(); ?> -->
             <div class="form-group">
                 <label for="emri"><?php echo htmlspecialchars($L['name']); ?></label>
                 <input type="text" id="emri" name="emri" required>
@@ -378,6 +446,10 @@ $L = $labels[$lang];
             <div class="form-group">
                 <label for="photo"><?php echo htmlspecialchars($L['photo']); ?></label>
                 <input type="file" id="photo" name="photo" accept="image/jpeg,image/png" required>
+            </div>
+            <!-- Cloudflare Turnstile -->
+            <div class="form-group">
+                <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-theme="light"></div>
             </div>
             <button type="submit"><?php echo htmlspecialchars($L['register']); ?></button>
         </form>

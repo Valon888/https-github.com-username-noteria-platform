@@ -12,6 +12,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once 'confidb.php';
+require_once 'ads_widget.php';
+require_once 'csrf.php';
+
+// Initialize CSRF protection
+csrf_init();
 
 // Kontrollo nëse përdoruesi është i kyçur dhe ka rolin e duhur
 if (!isset($_SESSION['user_id']) || $_SESSION['roli'] !== 'admin') {
@@ -21,9 +26,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['roli'] !== 'admin') {
 
 // Merr të dhënat e administratorit
 $admin_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT emri, mbiemri, email FROM users WHERE id = ? AND roli = 'admin'");
+
+// Provo të marrësh të dhënat nga tabela admins
+$stmt = $pdo->prepare("SELECT emri, email FROM admins WHERE id = ?");
 $stmt->execute([$admin_id]);
 $admin = $stmt->fetch();
+
+// Nëse nuk gjendet në admins, provo në users (për pajtueshmëri të vjetër)
+if (!$admin) {
+    $stmt = $pdo->prepare("SELECT emri, mbiemri, email FROM users WHERE id = ? AND roli = 'admin'");
+    $stmt->execute([$admin_id]);
+    $admin = $stmt->fetch();
+}
 
 if (!$admin) {
     header("Location: logout.php");
@@ -82,7 +96,10 @@ $error = $success = '';
 
 // Fshi zyrë
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_zyra'])) {
-    $zyra_id = $_POST['zyra_id'] ?? 0;
+    // Validate CSRF token using the new protection system
+    csrf_validate();
+        
+        $zyra_id = $_POST['zyra_id'] ?? 0;
     
     if ($zyra_id) {
         // Kontrollo nëse ka përdorues të lidhur
@@ -114,20 +131,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_zyra'])) {
 
 // Aktivizo/deaktivizo përdorues
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])) {
-    $user_id = $_POST['user_id'] ?? 0;
-    $new_status = $_POST['new_status'] === '1' ? 1 : 0;
-    
-    if ($user_id) {
-        $stmt = $pdo->prepare("UPDATE users SET aktiv = ? WHERE id = ?");
-        if ($stmt->execute([$new_status, $user_id])) {
-            $success = "Statusi i përdoruesit u ndryshua me sukses!";
+    // Validate CSRF token using the new protection system
+    csrf_validate();
+        
+        $user_id = $_POST['user_id'] ?? 0;
+        $new_status = $_POST['new_status'] === '1' ? 1 : 0;
+        
+        if ($user_id) {
+            $stmt = $pdo->prepare("UPDATE users SET aktiv = ? WHERE id = ?");
+            if ($stmt->execute([$new_status, $user_id])) {
+                $success = "Statusi i përdoruesit u ndryshua me sukses!";
+            } else {
+                $error = "Gabim gjatë ndryshimit të statusit.";
+            }
         } else {
-            $error = "Gabim gjatë ndryshimit të statusit.";
+            $error = "ID e përdoruesit nuk është e vlefshme!";
         }
-    } else {
-        $error = "ID e përdoruesit nuk është e vlefshme!";
     }
-}
 ?>
 
 <!DOCTYPE html>
@@ -664,6 +684,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="logo">
+                <img src="../images/Emblem_of_the_Republic_of_Kosovo.svg.png" alt="Kosovo Emblem" style="width: 50px; height: auto; margin-bottom: 10px;">
                 <h1>Noteria <span>Admin</span></h1>
             </div>
             
@@ -729,6 +750,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
                     <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
+
+            <!-- Ads Banner -->
+            <?php echo render_ads_banner($pdo); ?>
             
             <!-- Stats Overview -->
             <div class="stats-grid" id="dashboard">
@@ -790,6 +814,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Jeni të sigurt që doni të fshini këtë zyrë?');">
+                                        <?php echo csrf_field(); ?>
                                         <input type="hidden" name="zyra_id" value="<?php echo $zyra['id']; ?>">
                                         <button type="submit" name="delete_zyra" class="action-icon action-icon-delete">
                                             <i class="fas fa-trash"></i>
@@ -853,6 +878,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
                             <td>
                                 <?php if ($user['id'] != $admin_id): // Prevent disabling own account ?>
                                 <form method="POST" class="user-status-form">
+                                    <?php echo csrf_field(); ?>
                                     <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                     <input type="hidden" name="new_status" value="<?php echo $user['aktiv'] ? '0' : '1'; ?>">
                                     <button type="submit" name="toggle_user_status" class="user-status-toggle badge <?php echo $user['aktiv'] ? 'badge-success' : 'badge-danger'; ?>">
@@ -1188,5 +1214,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_user_status'])
             });
         });
     </script>
+
+    <!-- Ads Display -->
+    <?php echo render_ads_cards($pdo, 3); ?>
+    <?php echo render_ads_popup($pdo); ?>
+    <script src="track_ad_click.php"></script>
 </body>
 </html>

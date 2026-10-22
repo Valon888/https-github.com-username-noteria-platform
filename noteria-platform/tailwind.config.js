@@ -16,6 +16,13 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                kosovo: {
+                    blue: '#0033A0',
+                    yellow: '#FFD700',
+                    white: '#FFFFFF',
+                },
+            },
         },
     },
 

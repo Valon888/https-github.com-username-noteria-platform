@@ -6,6 +6,40 @@ ini_set('error_log', __DIR__ . '/error.log');
 session_start();
 require_once 'config.php';
 
+// Përcaktojmë planet fikse sipas kërkesës
+$plans = [
+    [
+        'id' => 1, 
+        'emri' => 'Abonim Mujor', 
+        'cmimi' => 150.00, 
+        'kohezgjatja' => 1,
+        'label' => 'Abonim Mujor - 150.00 €'
+    ],
+    [
+        'id' => 2, 
+        'emri' => 'Abonim Vjetor', 
+        'cmimi' => 1600.00, 
+        'kohezgjatja' => 12,
+        'label' => 'Abonim Vjetor - 1600.00 € (Kurseni 200€)'
+    ]
+];
+
+// Provo të marrësh ID-të reale nga databaza nëse ekzistojnë, përndryshe përdor ID fiktive
+try {
+    $stmt_plans = $pdo->query("SELECT id, kohezgjatja FROM abonimet WHERE status = 'aktiv'");
+    $db_plans = $stmt_plans->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($db_plans as $db_plan) {
+        if ($db_plan['kohezgjatja'] == 1) {
+            $plans[0]['id'] = $db_plan['id'];
+        } elseif ($db_plan['kohezgjatja'] == 12) {
+            $plans[1]['id'] = $db_plan['id'];
+        }
+    }
+} catch (Exception $e) {
+    // Injoro gabimet e DB, përdor ID default
+}
+
 $success = null;
 $error = null;
 
@@ -26,6 +60,10 @@ $operatoret = [
 ];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Debugging logs
+    error_log("Registration attempt started in zyrat_register.php");
+    // error_log("POST Data: " . print_r($_POST, true)); // Uncomment for detailed data logging
+
     $emri = trim($_POST["emri"]);
     $fjalekalimi = trim($_POST["fjalekalimi"] ?? '');
     $qyteti = $_POST["qyteti"] ?? '';
@@ -60,233 +98,281 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     empty($numri_biznesit) || empty($numri_licences) || empty($data_licences) || empty($fjalekalimi)
     ) {
         $error = "Ju lutemi plotësoni të gjitha fushat e kërkuara.";
+        error_log("Validation failed: Empty fields");
     } elseif (strlen($fjalekalimi) < 8) {
         $error = "Fjalëkalimi duhet të ketë të paktën 8 karaktere.";
+        error_log("Validation failed: Password too short");
     } elseif (!in_array($qyteti, $qytetet)) {
         $error = "Qyteti i zgjedhur nuk është valid.";
+        error_log("Validation failed: Invalid city");
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Email-i nuk është valid.";
+        error_log("Validation failed: Invalid email");
     } elseif ($email !== $email2) {
         $error = "Email-at nuk përputhen.";
+        error_log("Validation failed: Emails do not match");
     } elseif (!preg_match('/^\+383\d{8}$/', $telefoni)) {
         $error = "Numri i telefonit duhet të fillojë me +383 dhe të ketë gjithsej 12 shifra (p.sh. +38344123456).";
+        error_log("Validation failed: Invalid phone format: $telefoni");
     } elseif (!array_key_exists($operator, $operatoret)) {
         $error = "Ju lutemi zgjidhni një operator valid të telefonisë mobile.";
+        error_log("Validation failed: Invalid operator");
     } elseif (!preg_match('/^[A-Z0-9]{15,34}$/', $iban)) {
         $error = "IBAN nuk është valid.";
+        error_log("Validation failed: Invalid IBAN");
     } elseif (!preg_match('/^\d{8,20}$/', $llogaria)) {
         $error = "Numri i llogarisë duhet të përmbajë vetëm shifra (8-20 shifra).";
+        error_log("Validation failed: Invalid account number");
     } elseif (!is_numeric($pagesa) || $pagesa < 10) {
         $error = "Shuma e pagesës duhet të jetë numerike dhe të paktën 10€.";
+        error_log("Validation failed: Invalid payment amount");
     } elseif (!preg_match('/^\d{9}$/', $numri_fiskal)) {
         $error = "Numri fiskal duhet të përmbajë 9 shifra.";
+        error_log("Validation failed: Invalid fiscal number");
     } elseif (!preg_match('/^[A-Z0-9]{10}$/', $numri_biznesit)) {
         $error = "Numri i biznesit nga ARBK duhet të përmbajë 10 karaktere alfanumerike.";
+        error_log("Validation failed: Invalid business number");
     } elseif (!preg_match('/^[A-Z0-9]{5,15}$/', $numri_licences)) {
         $error = "Numri i licencës duhet të përmbajë 5-15 karaktere alfanumerike.";
+        error_log("Validation failed: Invalid license number");
     } else {
-        // Të dhënat e stafit - merri përpara se të përdoren në query
-        $emri_noterit = trim($_POST["emri_noterit"] ?? '');
-        $vitet_pervoje = intval($_POST["vitet_pervoje"] ?? 0);
-        $numri_punetoreve = intval($_POST["numri_punetoreve"] ?? 1);
-        $gjuhet = trim($_POST["gjuhet"] ?? '');
-        
-        // Të dhënat e punëtorëve
-        $staff_names = $_POST["staff_name"] ?? [];
-        $staff_positions = $_POST["staff_position"] ?? [];
-        
-        // Përgatit të dhënat e stafit në JSON
-        $staff_data = [];
-        for ($i = 0; $i < count($staff_names); $i++) {
-            if (!empty($staff_names[$i])) {
-                $staff_data[] = [
-                    'emri' => $staff_names[$i],
-                    'pozita' => $staff_positions[$i] ?? ''
-                ];
-            }
-        }
-        $staff_json = json_encode($staff_data, JSON_UNESCAPED_UNICODE);
-        
-        // Check if the 'abonim_id' column exists in the 'zyrat' table
-        $columnExists = false;
         try {
-            $checkColumnStmt = $pdo->prepare("SHOW COLUMNS FROM zyrat LIKE 'abonim_id'");
-            $checkColumnStmt->execute();
-            $columnExists = ($checkColumnStmt->rowCount() > 0);
-        } catch (PDOException $e) {
-            // If there's an error, assume column doesn't exist
+            // Auto-fix: Check if fjalekalimi column exists and add it if missing
+            try {
+                $checkPwd = $pdo->query("SHOW COLUMNS FROM zyrat LIKE 'fjalekalimi'");
+                if ($checkPwd->rowCount() == 0) {
+                    $pdo->exec("ALTER TABLE zyrat ADD COLUMN fjalekalimi VARCHAR(255) NULL");
+                    error_log("Added missing column 'fjalekalimi' to 'zyrat' table");
+                }
+            } catch (Exception $e) {
+                error_log("Failed to check/add fjalekalimi column: " . $e->getMessage());
+            }
+
+            // Check columns BEFORE transaction
             $columnExists = false;
-        }
-        
-        // Abonim ID from session if available
-        $abonim_id = isset($_SESSION['selected_abonim']['id']) ? $_SESSION['selected_abonim']['id'] : null;
-        
-        // Prepare the SQL statement based on whether the column exists
-        if ($columnExists) {
-            $stmt = $pdo->prepare("
-                INSERT INTO zyrat (
-                    emri, qyteti, adresa, shteti, email, telefoni, operator, 
-                    banka, iban, llogaria, pagesa, numri_fiskal, numri_biznesit, 
-                    numri_licences, data_licences, emri_noterit, vitet_pervoje,
-                    numri_punetoreve, gjuhet, staff_data, fjalekalimi, data_regjistrimit, abonim_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
-            ");
-        } else {
-            $stmt = $pdo->prepare("
-                INSERT INTO zyrat (
-                    emri, qyteti, adresa, shteti, email, telefoni, operator, 
-                    banka, iban, llogaria, pagesa, numri_fiskal, numri_biznesit, 
-                    numri_licences, data_licences, emri_noterit, vitet_pervoje,
-                    numri_punetoreve, gjuhet, staff_data, fjalekalimi, data_regjistrimit
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-            ");
-        }
-        
-        // Execute with or without abonim_id based on column existence
-        $fjalekalimi_hash = password_hash($fjalekalimi, PASSWORD_DEFAULT);
-        $params = [
-            $emri, $qyteti, $adresa, $shteti, $email, $telefoni, $operator,
-            $banka, $iban, $llogaria, $pagesa, $numri_fiskal, $numri_biznesit, 
-            $numri_licences, $data_licences, $emri_noterit, $vitet_pervoje,
-            $numri_punetoreve, $gjuhet, $staff_json, $fjalekalimi_hash
-        ];
-        
-        // Only add abonim_id parameter if column exists
-        if ($columnExists && $abonim_id !== null) {
-            $params[] = $abonim_id;
-        }
-        
-        if ($stmt->execute($params)) {
-            $success = "Zyra u regjistrua me sukses dhe pagesa u pranua!";
-        } else {
-            $error = "Ndodhi një gabim gjatë regjistrimit: " . $stmt->errorInfo()[2];
-        }
-    } // <-- ADD THIS CLOSING BRACKET TO END THE ELSE BLOCK
-
-    // Fix for the transaction section
-    try {
-        $pdo->beginTransaction();
-        
-        // Gjenerimi i ID-së së transaksionit
-        $transaction_id = 'TXN_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4));
-        
-        // Upload file if provided
-        $file_path = null;
-        $payment_proof = $_FILES['payment_proof'] ?? null;
-        if ($payment_proof && $payment_proof['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = 'uploads/payment_proofs/';
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0755, true);
+            try {
+                $checkColumnStmt = $pdo->prepare("SHOW COLUMNS FROM zyrat LIKE 'abonim_id'");
+                $checkColumnStmt->execute();
+                $columnExists = ($checkColumnStmt->rowCount() > 0);
+            } catch (PDOException $e) {
+                $columnExists = false;
             }
-            $file_path = $upload_dir . $transaction_id . '.' . pathinfo($payment_proof['name'], PATHINFO_EXTENSION);
-            move_uploaded_file($payment_proof['tmp_name'], $file_path);
-        }
 
-        // Shto në payment_logs për verifikim të shpejtë me të dhëna telefoni
-        $payment_details = "IBAN: $iban, Banka: $banka, Llogaria: $llogaria, Numri Fiskal: $numri_fiskal";
-        $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method'] : "bank_transfer";
-        
-        // Add subscription details if available
-        if (isset($_SESSION['selected_abonim_id'])) {
-            $payment_details .= ", Abonim ID: " . $_SESSION['selected_abonim_id'];
-            
-            // If we have the plan price, use that instead of the default payment amount
-            if (isset($_SESSION['selected_abonim']['price'])) {
-                $pagesa = $_SESSION['selected_abonim']['price'];
-            }
-        }
-        // Get abonim_id from session if it exists
-        $abonim_id_param = isset($_SESSION['selected_abonim']['id']) ? $_SESSION['selected_abonim']['id'] : null;
-        
-        // Check if the 'abonim_id' column exists in the 'payment_logs' table
-        $logColumnExists = false;
-        try {
-            $checkLogColumnStmt = $pdo->prepare("SHOW COLUMNS FROM payment_logs LIKE 'abonim_id'");
-            $checkLogColumnStmt->execute();
-            $logColumnExists = ($checkLogColumnStmt->rowCount() > 0);
-        } catch (PDOException $e) {
-            // If there's an error, assume column doesn't exist
             $logColumnExists = false;
-        }
-        
-        // Prepare SQL based on column existence
-        if ($logColumnExists) {
-            $stmt = $pdo->prepare("
-                INSERT INTO payment_logs 
-                (office_email, office_name, phone_number, operator, payment_method, payment_amount, 
-                payment_details, transaction_id, verification_status, file_path, 
-                numri_fiskal, numri_biznesit, abonim_id, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW())
-            ");
-            $stmt->execute([
-                $email, $emri, $telefoni, $operator, $payment_method, $pagesa, 
-                $payment_details, $transaction_id, $file_path, $numri_fiskal, $numri_biznesit, $abonim_id_param
-            ]);
-        } else {
-            $stmt = $pdo->prepare("
-                INSERT INTO payment_logs 
-                (office_email, office_name, phone_number, operator, payment_method, payment_amount, 
-                payment_details, transaction_id, verification_status, file_path, 
-                numri_fiskal, numri_biznesit, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW())
-            ");
-            $stmt->execute([
-                $email, $emri, $telefoni, $operator, $payment_method, $pagesa, 
-                $payment_details, $transaction_id, $file_path, $numri_fiskal, $numri_biznesit
-            ]);
-        }
-        
-        // If we have an abonim_id, add entry to noteri_abonimet table
-        if (isset($_SESSION['selected_abonim']['id']) && !empty($_SESSION['selected_abonim']['id'])) {
-            // Get the newly inserted zyra id
+            try {
+                $checkLogColumnStmt = $pdo->prepare("SHOW COLUMNS FROM payment_logs LIKE 'abonim_id'");
+                $checkLogColumnStmt->execute();
+                $logColumnExists = ($checkLogColumnStmt->rowCount() > 0);
+            } catch (PDOException $e) {
+                $logColumnExists = false;
+            }
+
+            $pdo->beginTransaction();
+
+            // Të dhënat e stafit - merri përpara se të përdoren në query
+            $emri_noterit = trim($_POST["emri_noterit"] ?? '');
+            $vitet_pervoje = intval($_POST["vitet_pervoje"] ?? 0);
+            $numri_punetoreve = intval($_POST["numri_punetoreve"] ?? 1);
+            $gjuhet = trim($_POST["gjuhet"] ?? '');
+            
+            // Të dhënat e punëtorëve
+            $staff_names = $_POST["staff_name"] ?? [];
+            $staff_positions = $_POST["staff_position"] ?? [];
+            
+            // Përgatit të dhënat e stafit në JSON
+            $staff_data = [];
+            for ($i = 0; $i < count($staff_names); $i++) {
+                if (!empty($staff_names[$i])) {
+                    $staff_data[] = [
+                        'emri' => $staff_names[$i],
+                        'pozita' => $staff_positions[$i] ?? ''
+                    ];
+                }
+            }
+            $staff_json = json_encode($staff_data, JSON_UNESCAPED_UNICODE);
+            
+            // Abonim ID from session if available - USE THE ONE FROM TOP OF SCRIPT
+            // $abonim_id = isset($_SESSION['selected_abonim']['id']) ? $_SESSION['selected_abonim']['id'] : null;
+            if ($abonim_id <= 0) {
+                $abonim_id = null;
+            }
+            
+            // Prepare the SQL statement based on whether the column exists
+            if ($columnExists) {
+                $stmt = $pdo->prepare("
+                    INSERT INTO zyrat (
+                        emri, qyteti, adresa, shteti, lloji_biznesit, email, telefoni, operator, 
+                        banka, iban, llogaria, pagesa, nr_fiskal, nr_biznesi, 
+                        numri_licences, data_licences, emri_noterit, vitet_pervoje,
+                        numri_punetoreve, gjuhet, staff_data, fjalekalimi, data_regjistrimit, abonim_id
+                    ) VALUES (?, ?, ?, ?, 'Zyre Noteriale', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    INSERT INTO zyrat (
+                        emri, qyteti, adresa, shteti, lloji_biznesit, email, telefoni, operator, 
+                        banka, iban, llogaria, pagesa, nr_fiskal, nr_biznesi, 
+                        numri_licences, data_licences, emri_noterit, vitet_pervoje,
+                        numri_punetoreve, gjuhet, staff_data, fjalekalimi, data_regjistrimit
+                    ) VALUES (?, ?, ?, ?, 'Zyre Noteriale', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                ");
+            }
+            
+            // Execute with or without abonim_id based on column existence
+            $fjalekalimi_hash = password_hash($fjalekalimi, PASSWORD_DEFAULT);
+            $params = [
+                $emri, $qyteti, $adresa, $shteti, $email, $telefoni, $operator,
+                $banka, $iban, $llogaria, $pagesa, $numri_fiskal, $numri_biznesit, 
+                $numri_licences, $data_licences, $emri_noterit, $vitet_pervoje,
+                $numri_punetoreve, $gjuhet, $staff_json, $fjalekalimi_hash
+            ];
+            
+            // Only add abonim_id parameter if column exists
+            if ($columnExists) {
+                $params[] = $abonim_id;
+            }
+            
+            if (!$stmt->execute($params)) {
+                throw new Exception("Gabim gjatë regjistrimit të zyrës: " . implode(", ", $stmt->errorInfo()));
+            }
+            
             $zyra_id = $pdo->lastInsertId();
             
-            // Get information about the selected subscription
-            $stmt_abonim = $pdo->prepare("SELECT kohezgjatja FROM abonimet WHERE id = ?");
-            $stmt_abonim->execute([$_SESSION['selected_abonim']['id']]);
-            $abonim_info = $stmt_abonim->fetch(PDO::FETCH_ASSOC);
+            // Gjenerimi i ID-së së transaksionit
+            $transaction_id = 'TXN_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4));
             
-            if ($abonim_info) {
-                // Calculate start and end dates
-                $start_date = date('Y-m-d');
-                $end_date = date('Y-m-d', strtotime("+{$abonim_info['kohezgjatja']} months"));
+            // Upload file if provided
+            $file_path = null;
+            $payment_proof = $_FILES['payment_proof'] ?? null;
+            if ($payment_proof && $payment_proof['error'] === UPLOAD_ERR_OK) {
+                $upload_dir = 'uploads/payment_proofs/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                $file_path = $upload_dir . $transaction_id . '.' . pathinfo($payment_proof['name'], PATHINFO_EXTENSION);
+                move_uploaded_file($payment_proof['tmp_name'], $file_path);
+            }
+
+            // Shto në payment_logs për verifikim të shpejtë me të dhëna telefoni
+            $payment_details = "IBAN: $iban, Banka: $banka, Llogaria: $llogaria, Numri Fiskal: $numri_fiskal";
+            $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method'] : "bank_transfer";
+            
+            // Add subscription details if available
+            if (isset($_SESSION['selected_abonim_id'])) {
+                $payment_details .= ", Abonim ID: " . $_SESSION['selected_abonim_id'];
                 
-                // Insert into noteri_abonimet table
-                $stmt_insert_abonim = $pdo->prepare("
-                    INSERT INTO noteri_abonimet 
-                    (noter_id, abonim_id, data_fillimit, data_mbarimit, status, paguar, menyra_pageses, transaksion_id) 
-                    VALUES (?, ?, ?, ?, 'aktiv', ?, ?, ?)
-                ");
-                $stmt_insert_abonim->execute([
-                    $zyra_id, 
-                    $_SESSION['selected_abonim']['id'],
-                    $start_date,
-                    $end_date,
-                    $pagesa,
-                    $payment_method,
-                    $transaction_id
-                ]);
+                // If we have the plan price, use that instead of the default payment amount
+                if (isset($_SESSION['selected_abonim']['price'])) {
+                    $pagesa = $_SESSION['selected_abonim']['price'];
+                }
+            }
+            // Get abonim_id from session if it exists
+            $abonim_id_param = isset($_SESSION['selected_abonim']['id']) ? $_SESSION['selected_abonim']['id'] : null;
+            
+            // Check columns for payment_logs
+            $logColumnExists = false;
+            $amountColumnExists = false;
+            try {
+                $checkLogColumnStmt = $pdo->prepare("SHOW COLUMNS FROM payment_logs LIKE 'abonim_id'");
+                $checkLogColumnStmt->execute();
+                $logColumnExists = ($checkLogColumnStmt->rowCount() > 0);
+                
+                $checkAmountStmt = $pdo->prepare("SHOW COLUMNS FROM payment_logs LIKE 'amount'");
+                $checkAmountStmt->execute();
+                $amountColumnExists = ($checkAmountStmt->rowCount() > 0);
+            } catch (PDOException $e) {
+                $logColumnExists = false;
+                $amountColumnExists = false;
+            }
+
+            // Prepare SQL based on column existence
+            $sql = "INSERT INTO payment_logs (office_email, office_name, phone_number, operator, payment_method, payment_amount, payment_details, transaction_id, verification_status, file_path, numri_fiskal, numri_biznesit, created_at";
+            
+            if ($logColumnExists) $sql .= ", abonim_id";
+            if ($amountColumnExists) $sql .= ", amount";
+            
+            $sql .= ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW()";
+            
+            if ($logColumnExists) $sql .= ", ?";
+            if ($amountColumnExists) $sql .= ", ?";
+            
+            $sql .= ")";
+            
+            $stmt = $pdo->prepare($sql);
+            
+            $params = [
+                $email, $emri, $telefoni, $operator, $payment_method, $pagesa, 
+                $payment_details, $transaction_id, $file_path, $numri_fiskal, $numri_biznesit
+            ];
+            
+            if ($logColumnExists) $params[] = $abonim_id_param;
+            if ($amountColumnExists) $params[] = $pagesa;
+            
+            $stmt->execute($params);
+            
+            // If we have an abonim_id, add entry to noteri_abonimet table
+            if (isset($_SESSION['selected_abonim']['id']) && !empty($_SESSION['selected_abonim']['id'])) {
+                // Get information about the selected subscription
+                $stmt_abonim = $pdo->prepare("SELECT kohezgjatja FROM abonimet WHERE id = ?");
+                $stmt_abonim->execute([$_SESSION['selected_abonim']['id']]);
+                $abonim_info = $stmt_abonim->fetch(PDO::FETCH_ASSOC);
+                
+                if ($abonim_info) {
+                    // Calculate start and end dates
+                    $start_date = date('Y-m-d');
+                    $end_date = date('Y-m-d', strtotime("+{$abonim_info['kohezgjatja']} months"));
+                    
+                    // Insert into noteri_abonimet table
+                    $stmt_insert_abonim = $pdo->prepare("
+                        INSERT INTO noteri_abonimet 
+                        (noter_id, abonim_id, data_fillimit, data_mbarimit, status, paguar, menyra_pageses, transaksion_id) 
+                        VALUES (?, ?, ?, ?, 'aktiv', ?, ?, ?)
+                    ");
+                    $stmt_insert_abonim->execute([
+                        $zyra_id, 
+                        $_SESSION['selected_abonim']['id'],
+                        $start_date,
+                        $end_date,
+                        $pagesa,
+                        $payment_method,
+                        $transaction_id
+                    ]);
+                }
+            }
+            
+            $pdo->commit();
+            // Pas regjistrimit, pastro të dhënat nga sesioni
+            unset($_SESSION['teb_payment_success']);
+            unset($_SESSION['selected_abonim']);
+            unset($_SESSION['payment_method']);
+            
+            // Dërgo email konfirmimi
+            sendConfirmationEmail($email, $emri, $transaction_id);
+            
+            // Sukses mesazhi
+            $success = "✅ Zyra u regjistrua me sukses!<br>📱 Do të merrni një SMS për verifikim<br>💳 Pagesa është duke u verifikuar";
+            
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $error = "Ndodhi një gabim gjatë regjistrimit: " . $e->getMessage();
+            error_log("Registration error: " . $e->getMessage());
+            
+            // DIAGNOSTIC: Check for triggers causing the issue
+            try {
+                $stmt = $pdo->prepare("SHOW TRIGGERS WHERE `Table` = 'zyrat'");
+                $stmt->execute();
+                $triggers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                error_log("Triggers on zyrat table:");
+                foreach ($triggers as $trigger) {
+                    error_log("Trigger: " . $trigger['Trigger']);
+                    error_log("Statement: " . $trigger['Statement']);
+                }
+            } catch (Exception $ex) {
+                error_log("Could not list triggers: " . $ex->getMessage());
             }
         }
-        
-        $pdo->commit();
-        // Pas regjistrimit, pastro të dhënat nga sesioni
-        unset($_SESSION['teb_payment_success']);
-        unset($_SESSION['selected_abonim']);
-        unset($_SESSION['payment_method']);
-        
-        // Dërgo email konfirmimi
-        sendConfirmationEmail($email, $emri, $transaction_id);
-        
-        // Sukses mesazhi
-        $success = "✅ Zyra u regjistrua me sukses!<br>📱 Do të merrni një SMS për verifikim<br>💳 Pagesa është duke u verifikuar";
-        
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        $error = "Ndodhi një gabim gjatë regjistrimit: " . $e->getMessage();
-        error_log("Registration error: " . $e->getMessage());
     }
-} // <-- ADD THIS CLOSING BRACKET TO END THE MAIN IF BLOCK
+}
 
 /**
  * Send confirmation email to the office after registration.
@@ -996,9 +1082,8 @@ function sendConfirmationEmail($to, $officeName, $transactionId) {
                 </div>
             </div>
             
-            </form>
             <!-- Kontakti Form -->
-            <form method="POST" enctype="multipart/form-data" id="contact-form">
+            <!-- <form method="POST" enctype="multipart/form-data" id="contact-form"> -->
                 <div class="section-title"><i class="fas fa-envelope"></i> Kontakti</div>
                 <div class="form-columns">
                     <div class="form-group">
@@ -1016,7 +1101,7 @@ function sendConfirmationEmail($to, $officeName, $transactionId) {
                         </div>
                     </div>
                 </div>
-            </form>
+            <!-- </form> -->
                 <div class="form-group">
                     <label for="telefoni">Numri i Telefonit:</label>
                     <div class="input-with-icon">
@@ -1176,26 +1261,102 @@ function sendConfirmationEmail($to, $officeName, $transactionId) {
                 </div>
             </div>
             
-            <div class="section-title"><i class="fas fa-euro-sign"></i> Pagesa për platformën</div>
+            <div class="section-title"><i class="fas fa-euro-sign"></i> Zgjedhja e Planit dhe Pagesa</div>
             <div class="form-columns">
+                <div class="form-group">
+                    <label for="abonim_selector">Zgjidhni Planin e Abonimit <span style="color:red">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-tags"></i>
+                        <select name="abonim_id" id="abonim_selector" required>
+                            <option value="" disabled <?php echo !isset($_SESSION['selected_abonim']['id']) ? 'selected' : ''; ?>>-- Zgjidhni Planin --</option>
+                            <?php foreach ($plans as $plan): ?>
+                                <?php 
+                                    $isSelected = (isset($_SESSION['selected_abonim']['id']) && $_SESSION['selected_abonim']['id'] == $plan['id']) || 
+                                                  (!isset($_SESSION['selected_abonim']['id']) && $plan['cmimi'] == 150.00);
+                                ?>
+                                <option value="<?php echo $plan['id']; ?>" data-price="<?php echo $plan['cmimi']; ?>" <?php echo $isSelected ? 'selected' : ''; ?>>
+                                    <?php echo isset($plan['label']) ? $plan['label'] : htmlspecialchars($plan['emri']) . ' - ' . number_format($plan['cmimi'], 2) . ' €'; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="pagesa">Shuma për pagesë (€):</label>
                     <div class="input-with-icon">
                         <i class="fas fa-money-bill-wave"></i>
-                        <input type="number" name="pagesa" id="pagesa" min="150" step="0.01" value="<?php echo isset($_SESSION['selected_abonim']['price']) ? $_SESSION['selected_abonim']['price'] : '150.00'; ?>" required placeholder="150.00" <?php echo isset($_SESSION['selected_abonim']['price']) ? 'readonly' : ''; ?>>
+                        <input type="number" name="pagesa" id="pagesa" step="0.01" readonly required>
                     </div>
-                    <?php if(isset($_SESSION['selected_abonim']['id']) && isset($_SESSION['selected_abonim']['name'])): ?>
-                    <div class="selected-plan-info">
-                        <i class="fas fa-check-circle"></i> Plani i zgjedhur: <strong><?php echo htmlspecialchars($_SESSION['selected_abonim']['name']); ?></strong>
-                        <input type="hidden" name="abonim_id" value="<?php echo $_SESSION['selected_abonim']['id']; ?>">
-                    </div>
-                    <?php else: ?>
                     <div class="field-info">
-                        <i class="fas fa-info-circle"></i> Mund të zgjidhni një <a href="abonimet.php" target="_blank">plan abonimesh</a> para regjistrimit
+                        <i class="fas fa-info-circle"></i> Shuma llogaritet automatikisht bazuar në planin e zgjedhur
                     </div>
-                    <?php endif; ?>
                 </div>
+
                 <div class="form-group">
+                    <label for="payment_method">Mënyra e Pagesës:</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-wallet"></i>
+                        <select name="payment_method" id="payment_method" onchange="togglePaymentFields()">
+                            <option value="bank_transfer">Transfertë Bankare</option>
+                            <option value="credit_card">Kartelë Krediti / Debiti</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>Partnerët Bankarë:</label>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; justify-content: center;">
+                        <img src="images/BKT_Logo.jpg" alt="BKT" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                        <img src="images/tink_logo.png" alt="Tink" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                        <img src="images/MoneyGram.jpg" alt="MoneyGram" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                        <img src="images/OIP.webp" alt="Partner" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                        <!-- Other logos provided -->
+                        <img src="images/324278851_3137678529855889_4430967934292159700_n.png" alt="Partner" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                        <img src="images/347553484_643310674493687_8963447518322596944_n.jpg" alt="Partner" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                        <img src="images/352363796_6603753096342750_5975088970274800558_n.jpg" alt="Partner" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                        <img src="images/464949490_954715033354926_4354965209175578191_n.jpg" alt="Partner" style="height: 50px; object-fit: contain; mix-blend-mode: multiply;">
+                    </div>
+                </div>
+
+                <div id="card_payment_form" style="display:none; grid-column: 1 / -1; margin-bottom: 1.5rem; padding: 1.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <h4 style="margin:0; color: #334155;">Të dhënat e kartelës</h4>
+                        <div style="color: #64748b;">
+                            <i class="fab fa-cc-visa" style="font-size: 1.5rem; margin-right: 0.5rem;"></i>
+                            <i class="fab fa-cc-mastercard" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.9rem;">Emri në kartelë</label>
+                        <input type="text" name="card_name" placeholder="EMRI MBIEMRI" style="text-transform: uppercase;">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.9rem;">Numri i kartelës</label>
+                        <div class="input-with-icon">
+                            <i class="far fa-credit-card"></i>
+                            <input type="text" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.9rem;">Skadon (MM/VV)</label>
+                            <input type="text" name="card_expiry" placeholder="MM/VV" maxlength="5">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.9rem;">CVC</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="text" name="card_cvc" placeholder="123" maxlength="4">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="payment_proof_container">
                     <label for="payment_proof">Dëshmi e pagesës (opsionale):</label>
                     <input type="file" name="payment_proof" id="payment_proof" accept=".pdf,.jpg,.jpeg,.png">
                     <div class="field-info">Ngarko dëshmi të pagesës nëse e keni kryer paraprakisht</div>
@@ -1711,6 +1872,38 @@ document.addEventListener('DOMContentLoaded', function() {
         // Bëj scroll poshtë për të treguar punëtorin e ri
         newStaff.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
+
+    // Logic for updating price based on selected plan
+    const abonimSelector = document.getElementById('abonim_selector');
+    const pagesaInput = document.getElementById('pagesa');
+    
+    function updatePrice() {
+        const selectedOption = abonimSelector.options[abonimSelector.selectedIndex];
+        if (selectedOption && selectedOption.dataset.price) {
+            pagesaInput.value = selectedOption.dataset.price;
+        }
+    }
+    
+    if (abonimSelector) {
+        abonimSelector.addEventListener('change', updatePrice);
+        // Initialize on load
+        updatePrice();
+    }
+
+    // Toggle payment fields
+    window.togglePaymentFields = function() {
+        const method = document.getElementById('payment_method').value;
+        const cardForm = document.getElementById('card_payment_form');
+        const proofField = document.getElementById('payment_proof_container');
+        
+        if (method === 'credit_card') {
+            cardForm.style.display = 'block';
+            if(proofField) proofField.style.display = 'none';
+        } else {
+            cardForm.style.display = 'none';
+            if(proofField) proofField.style.display = 'block';
+        }
+    };
 });
 
 // Payment status checker (if available)

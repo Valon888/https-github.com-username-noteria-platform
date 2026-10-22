@@ -13,6 +13,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once 'confidb.php';
 
+// Generate CSRF token ONLY if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Kontrollo nëse përdoruesi është i kyçur dhe ka rolin e duhur
 if (!isset($_SESSION['user_id']) || $_SESSION['roli'] !== 'admin') {
     header("Location: login.php");
@@ -88,7 +93,15 @@ if ($action === 'toggle_status' && $id > 0) {
 
 // Shto përdorues të ri
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
-    $emri = trim($_POST['emri'] ?? '');
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (empty($csrf_token) || !hash_equals($_SESSION['csrf_token'] ?? '', $csrf_token)) {
+        $error = "Veprimi i paautorizuar (CSRF)!";
+    } else {
+        // Regenerate CSRF token
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        
+        $emri = trim($_POST['emri'] ?? '');
     $mbiemri = trim($_POST['mbiemri'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -122,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     } else {
         $error = "Ju lutemi plotësoni të gjitha fushat e detyrueshme!";
     }
+}
 }
 
 // Ndrysho rolin e përdoruesit
@@ -931,6 +945,7 @@ $filtered_users = array_filter($users, function($user) use ($filter_role, $filte
             <span class="close-modal">&times;</span>
             <h3 class="modal-title">Shto Përdorues të Ri</h3>
             <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                 <div class="form-group">
                     <label for="emri" class="form-label">Emri</label>
                     <input type="text" id="emri" name="emri" class="form-control" required>

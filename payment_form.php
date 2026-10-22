@@ -22,45 +22,73 @@ $payment_submitted = false;
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $emri_i_plot = trim($_POST['emri_i_plot'] ?? '');
-    $iban = trim($_POST['iban'] ?? '');
     $shuma = floatval($_POST['shuma'] ?? 0);
     $pershkrimi = trim($_POST['pershkrimi'] ?? '');
+    $payment_method = trim($_POST['payment_method'] ?? 'bank_transfer');
     
     // Validation
     if (!$emri_i_plot) {
         $error = "Emri i plotë është i detyrueshëm.";
-    } elseif (!$iban || strlen($iban) < 15) {
-        $error = "IBAN duhet të jetë i vlefshëm (min 15 karaktere).";
     } elseif ($shuma <= 0) {
         $error = "Shuma duhet të jetë më e madhe se 0.";
     } elseif (!$pershkrimi) {
         $error = "Përshkrimi i pagesës është i detyrueshëm.";
-    } else {
+    } elseif ($payment_method === 'bank_transfer') {
+        $iban = trim($_POST['iban'] ?? '');
+        if (!$iban || strlen($iban) < 15) {
+            $error = "IBAN duhet të jetë i vlefshëm (min 15 karaktere).";
+        }
+    } elseif ($payment_method === 'card') {
+        $card_number = trim($_POST['card_number'] ?? '');
+        $card_holder = trim($_POST['card_holder'] ?? '');
+        $expiry = trim($_POST['expiry'] ?? '');
+        $cvv = trim($_POST['cvv'] ?? '');
+        
+        if (!$card_number || strlen(str_replace(' ', '', $card_number)) < 13) {
+            $error = "Numri i kartës duhet të jetë i vlefshëm (min 13 shifra).";
+        } elseif (!$card_holder) {
+            $error = "Emri në kartë është i detyrueshëm.";
+        } elseif (!$expiry || !preg_match('/^\d{2}\/\d{2}$/', $expiry)) {
+            $error = "Data e skadimit duhet të jetë në formatin MM/YY.";
+        } elseif (!$cvv || !preg_match('/^\d{3,4}$/', $cvv)) {
+            $error = "CVV duhet të ketë 3-4 shifra.";
+        }
+    }
+    
+    if (!$error) {
         // Save payment request to database
         try {
             // Use existing payments table structure
             $stmt = $pdo->prepare("
                 INSERT INTO payments (user_id, amount, payment_method, status, created_at)
-                VALUES (?, ?, 'bank_transfer', 'pending', NOW())
+                VALUES (?, ?, ?, 'pending', NOW())
             ");
             
             $result = $stmt->execute([
                 $_SESSION['user_id'],
-                $shuma
+                $shuma,
+                $payment_method
             ]);
             
             if ($result) {
                 $payment_id = $pdo->lastInsertId();
                 
                 // Store full details in audit log
-                $details = "Emri: $emri_i_plot | IBAN: $iban | Përshkrim: $pershkrimi";
+                if ($payment_method === 'bank_transfer') {
+                    $iban = trim($_POST['iban'] ?? '');
+                    $details = "Emri: $emri_i_plot | IBAN: $iban | Përshkrim: $pershkrimi";
+                    $log_detail = 'Kërkesë pagese (Transferti Bankar): €' . $shuma . ' | Emri: ' . $emri_i_plot . ' | IBAN: ' . substr($iban, -4) . ' | Përshkrim: ' . $pershkrimi;
+                } else {
+                    $card_number = trim($_POST['card_number'] ?? '');
+                    $details = "Emri: $emri_i_plot | Karta: ****" . substr($card_number, -4) . " | Përshkrim: $pershkrimi";
+                    $log_detail = 'Kërkesë pagese (Kartë Krediti): €' . $shuma . ' | Emri: ' . $emri_i_plot . ' | Karta: ****' . substr($card_number, -4) . ' | Përshkrim: ' . $pershkrimi;
+                }
                 
                 $message = "Kërkesa për pagesë u dërgua me sukses! Ju do të kontaktohemi brenda 24 orësh.";
                 $payment_submitted = true;
                 
                 // Log activity with full details
-                log_activity($pdo, $_SESSION['user_id'], 'payment_request', 
-                    'Kërkesë pagese: €' . $shuma . ' | Emri: ' . $emri_i_plot . ' | IBAN: ' . substr($iban, -4) . ' | Përshkrim: ' . $pershkrimi);
+                log_activity($pdo, $_SESSION['user_id'], 'payment_request', $log_detail);
             }
         } catch (Exception $e) {
             $error = "Gabim gjatë përpunimit: " . $e->getMessage();
@@ -202,8 +230,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         input[type="number"] {
             -webkit-appearance: textfield;
+            appearance: textfield;
         }
-        
+
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -215,7 +244,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         textarea {
             -webkit-autocorrect: off;
             -webkit-spellcheck: off;
-            spellcheck: false;
         }
         
         textarea {
@@ -321,68 +349,159 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         /* Mobile First - Extra Small Devices (320px and up) */
         @media (max-width: 430px) {
+            body {
+                padding: 0;
+            }
+
+            /* Uses safe-area values on notched phones */
             .container {
-                width: 100vw;
-                max-width: 100vw;
-                padding: 0 2px;
-                margin: 0;
-            }
-            .payment-card {
-                border-radius: 6px;
-            }
-            .payment-header {
-                padding: 10px;
-            }
-            .payment-header h1 {
-                font-size: 17px;
-            }
-            .payment-body {
-                padding: 8px;
-            }
-            input, textarea {
-                font-size: 15px;
-                padding: 8px;
-            }
-            .submit-btn {
-                padding: 10px;
-                font-size: 14px;
-            }
-        }
-        
-        /* Small Mobile Devices (376px - 425px): iPhone SE, SE 2, etc */
-        @media (min-width: 376px) and (max-width: 425px) {
-            .container {
-                padding: 12px;
-            }
-            
-            .payment-header {
-                padding: 18px;
-            }
-            
-            .payment-header h1 {
-                font-size: 22px;
-            }
-            
-            .payment-body {
-                padding: 18px;
-            }
-            
-            input, textarea {
-                font-size: 16px;
-            }
-            
-            label {
-                font-size: 13px;
-            }
-        }
-        
-        /* Standard Mobile Card Format (446px width) - All Mobile Devices */
-        @media (max-width: 768px) {
-            .container {
-                width: 446px;
-                max-width: 100%;
+                width: calc(100% - 1rem);
+                max-width: 446px;
                 margin: 0 auto;
+                padding: 0.5rem;
+                box-sizing: border-box;
+                padding-left: max(0.5rem, env(safe-area-inset-left));
+                padding-right: max(0.5rem, env(safe-area-inset-right));
             }
+
+            /* Header section optimization */
+            .header {
+                padding: clamp(0.8rem, 3.6vw, 1.25rem);
+                margin-bottom: 0.75rem;
+                border-radius: 6px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            }
+
+            .header h1 {
+                font-size: clamp(1.15rem, 4.4vw, 1.6rem);
+                margin-bottom: 0.2rem;
+                line-height: 1.25;
+            }
+
+            .header p {
+                font-size: clamp(0.88rem, 2.2vw, 1rem);
+                line-height: 1.35;
+            }
+
+            /* Content area optimization */
+            .content {
+                padding: 0.65rem;
+                border-radius: 6px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            /* Set inputs to 16px to avoid iOS zooming on focus */
+            input, select, textarea, label {
+                font-size: 16px; /* key: prevents iOS auto-zoom */
+            }
+
+            input, select, textarea {
+                padding: 0.55rem;
+                border-radius: 6px;
+                border: 1px solid #cbd5e1;
+                background: #ffffff;
+                transition: all 0.18s ease;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            input:focus, select:focus, textarea:focus {
+                border-color: #1e3a8a;
+                box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.08);
+                outline: none;
+            }
+
+            /* Tappable controls */
+            button, .button-primary, .payment-buttons button {
+                -webkit-tap-highlight-color: rgba(0,0,0,0);
+                touch-action: manipulation;
+                padding: 0.55rem 0.75rem;
+                min-height: 44px;
+                min-width: 44px;
+                font-size: clamp(0.9rem, 2.2vw, 1rem);
+                border-radius: 8px;
+            }
+
+            /* Payment buttons grid for mobile */
+            .payment-buttons {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.6rem;
+            }
+            .payment-buttons button {
+                width: 100%;
+            }
+
+            /* Form groups spacing and layout */
+            .form-row {
+                gap: 0.5rem;
+                grid-template-columns: 1fr;
+            }
+            .form-group { margin-bottom: 0.8rem; }
+
+            /* Messages, tables */
+            .success, .error, .info {
+                padding: 0.7rem;
+                font-size: 0.95rem;
+            }
+            table { font-size: 0.85rem; }
+            th, td { padding: 0.5rem; }
+
+            /* Tinky overlay / dropdown adjustments */
+            #form-tinky-dropdown {
+                padding: 12px !important;
+                margin: 10px 0 !important;
+                border-radius: 10px !important;
+                -webkit-overflow-scrolling: touch;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                max-height: 80vh !important;
+                background: #fff;
+            }
+            #form-tinky-dropdown .form-group { margin-bottom: 0.6rem !important; }
+            #form-tinky-dropdown label { font-size: 0.95rem !important; }
+            #form-tinky-dropdown input, #form-tinky-dropdown select {
+                font-size: 16px !important;
+                padding: 0.5rem !important;
+            }
+            #form-tinky-dropdown button {
+                padding: 0.55rem 0.65rem !important;
+                font-size: 1rem !important;
+                min-height: 40px !important;
+            }
+
+            /* Prevent overflow or weird zoom on numeric inputs */
+            input[type="number"] {
+                -moz-appearance: textfield;
+                appearance: textfield;
+            }
+        }
+
+        /* Samsung Galaxy S20 / Pixel — exact width targeting for refined spacing */
+        @media (width: 412px) and (max-height: 920px) {
+            .container { width: calc(100% - 1rem); padding: 0.45rem; }
+            .header h1 { font-size: 1.45rem; }
+            .content { padding: 0.6rem; }
+            #form-tinky-dropdown { max-height: 78vh !important; }
+        }
+
+        /* iPhone XR specific (414x896) */
+        @media (width: 414px) and (height: 896px) {
+            .container { width: calc(100% - 1rem); padding: 0.5rem; }
+            .header { padding: 1rem; }
+            .header h1 { font-size: 1.5rem; }
+            #form-tinky-dropdown { max-height: 78vh !important; }
+        }
+
+        /* iPhone 14 Pro Max (430x932) */
+        @media (width: 430px) and (height: 932px) {
+            .container { width: calc(100% - 1rem); padding: 0.55rem; }
+            .header h1 { font-size: 1.6rem; }
+            #form-tinky-dropdown { max-height: 80vh !important; }
+        }
+
+        /* Build-up for larger screens — keep layout readable and center-aligned */
+        @media (min-width: 480px) {
+            .container { padding: 1.25rem; }
         }
         
         /* Regular Mobile Devices (426px - 768px): iPhones 12-14, Pixels, Galaxy */
@@ -562,7 +681,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p><i class="fas fa-info-circle"></i> <strong>Hapat e Ardhshme:</strong></p>
                         <p>✓ Ekipi ynë do të shqyrtojë kërkesën tuaj</p>
                         <p>✓ Do të merrni email me instruksionet e pagesës</p>
-                        <p>✓ Pagesa do të përfundohet brenda 24 orësh</p>
+                        <p>✓ Pagesa do të përfundohet brenda 3 minutash</p>
                     </div>
                     
                     <a href="dashboard.php" class="submit-btn" style="background: #28a745;">
@@ -578,10 +697,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="info-box">
                         <i class="fas fa-info-circle"></i>
-                        <strong>Informacion:</strong> Këto të dhëna do të përdoren vetëm për përfundimin e pagesës tuaj përmes Tinky ose transferti bankar.
+                        <strong>Informacion:</strong> Këto të dhëna do të përdoren vetëm për përfundimin e pagesës tuaj përmes kartës krediti ose transferti bankar.
                     </div>
                     
-                    <form method="POST">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: flex; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                            <input type="radio" name="payment_method" value="bank_transfer" checked> 
+                            <span><strong>💳 Transferti Bankar</strong></span>
+                        </label>
+                        <label style="display: flex; gap: 10px; cursor: pointer;">
+                            <input type="radio" name="payment_method" value="card"> 
+                            <span><strong>💰 Kartë Krediti/Debiti</strong></span>
+                        </label>
+                    </div>
+                    
+                    <form method="POST" id="paymentForm">
                         <div class="form-group">
                             <label for="emri_i_plot">
                                 👤 Emri i plotë <span class="required">*</span>
@@ -600,22 +730,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="iban">
-                                🏦 IBAN i Bankës <span class="required">*</span>
-                            </label>
-                            <input 
-                                type="text" 
-                                id="iban" 
-                                name="iban"
-                                placeholder="p.sh. XK05 0000 0000 0000 0000"
-                                value="<?php echo htmlspecialchars($_POST['iban'] ?? ''); ?>"
-                                autocomplete="off"
-                                inputmode="text"
-                                required
-                            >
-                            <div class="form-helper">
-                                <i class="fas fa-lock"></i> Të dhëna të sigurta dhe të enkriptuara
+                        <!-- Bank Transfer Fields -->
+                        <div id="bankTransferFields">
+                            <div class="form-group">
+                                <label for="iban">
+                                    🏦 IBAN i Bankës <span class="required">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="iban" 
+                                    name="iban"
+                                    placeholder="p.sh. XK05 0000 0000 0000 0000"
+                                    value="<?php echo htmlspecialchars($_POST['iban'] ?? ''); ?>"
+                                    autocomplete="off"
+                                    inputmode="text"
+                                >
+                                <div class="form-helper">
+                                    <i class="fas fa-lock"></i> Të dhëna të sigurta dhe të enkriptuara
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Payment Fields -->
+                        <div id="cardPaymentFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="card_number">
+                                    💳 Numri i Kartës <span class="required">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="card_number" 
+                                    name="card_number"
+                                    placeholder="1234 5678 9012 3456"
+                                    value="<?php echo htmlspecialchars($_POST['card_number'] ?? ''); ?>"
+                                    inputmode="numeric"
+                                    pattern="[0-9\s]{13,22}"
+                                    maxlength="23"
+                                >
+                                <div class="form-helper">
+                                    <i class="fas fa-lock"></i> Të dhënat e kartës janë të enkriptuara
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="card_holder">
+                                    👤 Emri në Kartë <span class="required">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="card_holder" 
+                                    name="card_holder"
+                                    placeholder="EMRI MBIEMRI"
+                                    value="<?php echo htmlspecialchars($_POST['card_holder'] ?? ''); ?>"
+                                    autocomplete="cc-name"
+                                >
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div class="form-group">
+                                    <label for="expiry">
+                                        📅 Skadim <span class="required">*</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="expiry" 
+                                        name="expiry"
+                                        placeholder="MM/YY"
+                                        value="<?php echo htmlspecialchars($_POST['expiry'] ?? ''); ?>"
+                                        inputmode="numeric"
+                                        pattern="\d{2}/\d{2}"
+                                        maxlength="5"
+                                    >
+                                    <div class="form-helper">
+                                        <i class="fas fa-calendar"></i> Format: MM/YY
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="cvv">
+                                        🔒 CVV <span class="required">*</span>
+                                    </label>
+                                    <input 
+                                        type="password" 
+                                        id="cvv" 
+                                        name="cvv"
+                                        placeholder="123"
+                                        inputmode="numeric"
+                                        pattern="[0-9]{3,4}"
+                                        maxlength="4"
+                                    >
+                                    <div class="form-helper">
+                                        <i class="fas fa-lock"></i> 3-4 shifra
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -661,6 +868,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             Dërgo Kërkesën e Pagesës
                         </button>
                     </form>
+                    
+                    <script>
+                        const paymentMethodInputs = document.querySelectorAll('input[name="payment_method"]');
+                        const bankTransferFields = document.getElementById('bankTransferFields');
+                        const cardPaymentFields = document.getElementById('cardPaymentFields');
+                        const ibanInput = document.getElementById('iban');
+                        const cardInputs = document.querySelectorAll('#cardPaymentFields input');
+                        
+                        function togglePaymentFields() {
+                            const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+                            if (selectedMethod === 'bank_transfer') {
+                                bankTransferFields.style.display = 'block';
+                                cardPaymentFields.style.display = 'none';
+                                ibanInput.setAttribute('required', '');
+                                cardInputs.forEach(input => input.removeAttribute('required'));
+                            } else {
+                                bankTransferFields.style.display = 'none';
+                                cardPaymentFields.style.display = 'block';
+                                ibanInput.removeAttribute('required');
+                                cardInputs.forEach(input => input.setAttribute('required', ''));
+                            }
+                        }
+                        
+                        paymentMethodInputs.forEach(input => {
+                            input.addEventListener('change', togglePaymentFields);
+                        });
+                        
+                        // Format card number with spaces
+                        document.getElementById('card_number').addEventListener('input', function(e) {
+                            let value = e.target.value.replace(/\s/g, '');
+                            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+                            e.target.value = formattedValue;
+                        });
+                        
+                        // Format expiry date
+                        document.getElementById('expiry').addEventListener('input', function(e) {
+                            let value = e.target.value.replace(/\D/g, '');
+                            if (value.length >= 2) {
+                                value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                            }
+                            e.target.value = value;
+                        });
+                        
+                        // Allow only digits for CVV
+                        document.getElementById('cvv').addEventListener('input', function(e) {
+                            e.target.value = e.target.value.replace(/\D/g, '');
+                        });
+                    </script>
                 <?php endif; ?>
                 
                 <div class="back-link">

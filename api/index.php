@@ -104,7 +104,13 @@ $controllers = [
     'leje'     => 'LejeController',
     'orar'     => 'OrarController',
     'njoftim'  => 'NjoftimController',
-    'raport'   => 'RaportController'
+    'raport'   => 'RaportController',
+    'profile'  => 'ProfileController',
+    'appointments' => 'AppointmentController',
+    'documents' => 'DocumentController',
+    'payments' => 'PaymentController',
+    'notifications' => 'NotificationController',
+    'push' => 'PushController'
 ];
 
 // Bëni routing bazuar në resursin dhe metodën
@@ -136,6 +142,10 @@ try {
         require_once 'controllers/AuthController.php';
         $controller = new AuthController($db, $response, $logger, $auth);
         $controller->login($data);
+    } else if ($resource === 'register') {
+        require_once 'controllers/AuthController.php';
+        $controller = new AuthController($db, $response, $logger, $auth);
+        $controller->register($data);
     } else if ($resource === 'logout') {
         require_once 'controllers/AuthController.php';
         $controller = new AuthController($db, $response, $logger, $auth);

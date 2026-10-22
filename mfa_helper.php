@@ -38,20 +38,22 @@ function generateBackupCodes($count = 10) {
 }
 
 /**
- * Gjenero QR code URL për Google Authenticator
- * 
+ * Gjenero QR code URL për Microsoft Authenticator dhe aplikacione të tjera TOTP
+ * Microsoft Authenticator preferon format specifik
+ *
  * @param string $email Email i përdoruesit
  * @param string $secret TOTP secret
  * @param string $appName Emri i aplikacionit
  * @return string URL për QR code
  */
 function generateQRCodeUrl($email, $secret, $appName = 'Noteria') {
-    $otpauth_url = 'otpauth://totp/' . urlencode("$appName:$email") . 
-                   '?secret=' . urlencode($secret) . 
+    // Format për Microsoft Authenticator dhe aplikacione të tjera
+    $otpauth_url = 'otpauth://totp/' . urlencode("$appName:$email") .
+                   '?secret=' . urlencode($secret) .
                    '&issuer=' . urlencode($appName) .
                    '&algorithm=SHA1&digits=6&period=30';
-    
-    // Google Charts API për QR code
+
+    // Përdor Google Charts API për QR code (falas dhe i besueshëm)
     return 'https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=' . urlencode($otpauth_url);
 }
 
@@ -226,6 +228,80 @@ function userHasMFA($pdo, $user_id) {
     $stmt->execute([$user_id]);
     $result = $stmt->fetch();
     return $result['count'] > 0;
+}
+
+/**
+ * Verifikohet backup code dhe e fshin nga lista
+ *
+ * @param PDO $pdo Database connection
+ * @param int $user_id User ID
+ * @param string $backup_code Backup code për verifikim
+ * @return bool True nëse code-i është i vlefshëm dhe u përdor
+ */
+function verifyAndConsumeBackupCode($pdo, $user_id, $backup_code) {
+    $stmt = $pdo->prepare("SELECT backup_codes FROM user_mfa WHERE user_id = ? AND is_verified = 1 LIMIT 1");
+    $stmt->execute([$user_id]);
+    $mfa = $stmt->fetch();
+
+    if (!$mfa || empty($mfa['backup_codes'])) {
+        return false;
+    }
+
+    $backup_codes = json_decode($mfa['backup_codes'], true);
+    if (!is_array($backup_codes)) {
+        return false;
+    }
+
+    $code_index = array_search(strtoupper($backup_code), $backup_codes);
+    if ($code_index === false) {
+        return false;
+    }
+
+    // Fshi code-in e përdorur
+    unset($backup_codes[$code_index]);
+
+    // Ruaj listën e re
+    $update_stmt = $pdo->prepare("UPDATE user_mfa SET backup_codes = ? WHERE user_id = ?");
+    $update_stmt->execute([json_encode(array_values($backup_codes)), $user_id]);
+
+    return true;
+}
+
+/**
+ * Verifikohet backup code për admin dhe e fshin nga lista
+ *
+ * @param PDO $pdo Database connection
+ * @param int $admin_id Admin ID
+ * @param string $backup_code Backup code për verifikim
+ * @return bool True nëse code-i është i vlefshëm dhe u përdor
+ */
+function verifyAndConsumeAdminBackupCode($pdo, $admin_id, $backup_code) {
+    $stmt = $pdo->prepare("SELECT backup_codes FROM admin_mfa WHERE admin_id = ? AND is_verified = 1 LIMIT 1");
+    $stmt->execute([$admin_id]);
+    $mfa = $stmt->fetch();
+
+    if (!$mfa || empty($mfa['backup_codes'])) {
+        return false;
+    }
+
+    $backup_codes = json_decode($mfa['backup_codes'], true);
+    if (!is_array($backup_codes)) {
+        return false;
+    }
+
+    $code_index = array_search(strtoupper($backup_code), $backup_codes);
+    if ($code_index === false) {
+        return false;
+    }
+
+    // Fshi code-in e përdorur
+    unset($backup_codes[$code_index]);
+
+    // Ruaj listën e re
+    $update_stmt = $pdo->prepare("UPDATE admin_mfa SET backup_codes = ? WHERE admin_id = ?");
+    $update_stmt->execute([json_encode(array_values($backup_codes)), $admin_id]);
+
+    return true;
 }
 
 /**

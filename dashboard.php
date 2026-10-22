@@ -6,6 +6,8 @@ ini_set('log_errors', 1);     // Log gabimet në server
 ini_set('error_log', __DIR__ . '/error.log'); // Ruaj gabimet në error.log në këtë folder
 
 // Fillimi i sigurt i sesionit - PARA require_once
+
+
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 1 : 0);
@@ -107,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_notary'])) {
             $weekday = date('N', strtotime($date));
             if ($weekday == 6 || $weekday == 7) {
                 $error = "Zyrat noteriale nuk punojnë të Shtunën dhe të Dielën!";
+            } else {
                 $stmt = $pdo->prepare("SELECT id FROM reservations WHERE zyra_id = ? AND date = ? AND time = ?");
                 $stmt->execute([$zyra_id_selected, $date, $time]);
                 if ($stmt->rowCount() > 0) {
@@ -909,13 +912,13 @@ if ($noter_id) {
                             </form>';
                             // Shfaq faturat ekzistuese për këtë lëndë
                             try {
-                                $stmtF = $pdo->prepare("SELECT * FROM fatura WHERE reservation_id = ?");
+                                $stmtF = $pdo->prepare("SELECT id, nr_fatures, data_fatures, shuma FROM fatura WHERE reservation_id = ?");
                                 $stmtF->execute([$termin['id']]);
                                 while ($f = $stmtF->fetch()) {
-                                    $pdf_url = "fatura_pdf.php?fatura_id=" . $f['id'];
+                                    $pdf_url = "fatura_pdf.php?fatura_id=" . urlencode($f['id']);
                                     echo "<div style='margin-top:4px; color:#184fa3; font-size:0.97em;'>";
                                     echo "Fatura: <b>" . htmlspecialchars($f['nr_fatures']) . "</b> | Data: " . htmlspecialchars($f['data_fatures']) . " | Shuma: <b>" . htmlspecialchars($f['shuma']) . "€</b> | ";
-                                    echo "<a href='$pdf_url' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shkarko Faturën (PDF)</a>";
+                                    echo "<a href='" . htmlspecialchars($pdf_url) . "' target='_blank' style='color:#2d6cdf;font-weight:600;'>Shkarko Faturën (PDF)</a>";
                                     echo "</div>";
                                 }
                             } catch (PDOException $e) {
@@ -937,17 +940,25 @@ if ($noter_id) {
             <div class="admin-section">
     <h2>Statistika të Shpejta</h2>
     <?php
-    $total_terminet = $pdo->query("SELECT COUNT(*) FROM reservations")->fetchColumn();
-    $total_dokumente = $pdo->query("SELECT COUNT(*) FROM reservations WHERE document_path IS NOT NULL AND document_path != ''")->fetchColumn();
-    
-    // Kontrollo nëse tabela fatura ekziston
+    // Statistika të shpejta për dashboard
+    $total_terminet = 0;
+    $total_dokumente = 0;
     $total_pagesa = 0;
+
     try {
-        $total_pagesa = $pdo->query("SELECT COUNT(*) FROM fatura")->fetchColumn();
-    } catch (PDOException $e) {
-        // Tabela fatura nuk ekziston - set në 0
-        error_log("Notice: fatura table doesn't exist - " . $e->getMessage());
-    }
+        $stmt = $pdo->query("SELECT COUNT(*) FROM reservations");
+        $total_terminet = $stmt->fetchColumn();
+    } catch (Exception $e) {}
+
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM documents");
+        $total_dokumente = $stmt->fetchColumn();
+    } catch (Exception $e) {}
+
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM fatura");
+        $total_pagesa = $stmt->fetchColumn();
+    } catch (Exception $e) {}
     ?>
     <ul>
         <li><b>Terminet totale:</b> <?php echo $total_terminet; ?></li>
@@ -962,7 +973,7 @@ if ($noter_id) {
             <?php if ($notifications): ?>
                 <ul>
                     <?php foreach ($notifications as $notif): ?>
-                        <li style="margin-bottom:7px;<?php if(!$notif['is_read']) echo 'font-weight:bold;'; ?>">
+                        <li style="margin-bottom:7px;<?php echo (!$notif['is_read']) ? 'font-weight:bold;' : ''; ?>">
                             <?php echo htmlspecialchars($notif['message']); ?>
                             <span style="color:#888;font-size:0.95em;">(<?php echo date('d.m.Y H:i', strtotime($notif['created_at'])); ?>)</span>
                         </li>
@@ -993,7 +1004,7 @@ if ($noter_id) {
             <a href="logout.php">Shkyçu</a>
         </div>
 
-        <div class="zyra-section">
+    <div class="zyra-section">
     <h2>Profili Im</h2>
     <?php
     // Merr të dhënat aktuale
@@ -1384,7 +1395,7 @@ s0.parentNode.insertBefore(s1,s0);
             'created_at' => '2025-05-28'
         ],
         [
-            'titulli' => 'Siguria e të dhënave tuaja është prioriteti ynë',
+            'titulli' => 'Siguria e të dhënat tuaja është prioriteti ynë',
             'permbajtja' => 'Zbatojmë standardet më të larta të sigurisë për mbrojtjen e informacionit tuaj.',
             'created_at' => '2025-05-20'
         ],
@@ -1405,6 +1416,7 @@ s0.parentNode.insertBefore(s1,s0);
         echo nl2br(htmlspecialchars($lajm['permbajtja'])) . "</div>";
     }
     ?>
+</div>
 </div>
 </body>
 </html>

@@ -8,7 +8,9 @@
 require_once 'config.php';
 
 // Kontrollo sesionin
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['admin_id']) && !isset($_SESSION['auth_test'])) {
     die("Qasje e paautorizuar. <a href='direct_login.php'>Kliko këtu për të hyrë</a>");
 }

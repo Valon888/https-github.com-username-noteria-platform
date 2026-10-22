@@ -40,7 +40,7 @@ $isUser = ($user_roli === 'user');
 // Kontrollo nëse është super-admin (zhvillues) - vetëm për admin
 $isSuperAdmin = false;
 if (isset($_SESSION['admin_id'])) {
-    $isSuperAdmin = isDeveloper($_SESSION['admin_id'] ?? 0);
+    $isSuperAdmin = function_exists('isDeveloper') ? call_user_func('isDeveloper', $_SESSION['admin_id'] ?? 0) : false;
 }
 
 $message = '';

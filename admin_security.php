@@ -7,6 +7,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once 'confidb.php';
+require_once 'csrf.php';
+
+// Initialize CSRF protection
+csrf_init();
 
 // Kontrollo nëse përdoruesi është i kyçur dhe ka rolin e duhur
 if (!isset($_SESSION['user_id']) || $_SESSION['roli'] !== 'admin') {
@@ -31,18 +35,21 @@ $messageType = '';
 
 // Add new camera
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_camera'])) {
-    $name = trim($_POST['name']);
-    $location = trim($_POST['location']);
-    $ip_address = trim($_POST['ip_address']);
-    $model = trim($_POST['model']);
-    $zyra_id = (int) $_POST['zyra_id'];
-    $resolution = trim($_POST['resolution']);
-    $feed_url = trim($_POST['feed_url']);
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-    $notes = trim($_POST['notes'] ?? '');
-    
-    if ($name && $location && $ip_address && $feed_url) {
+    // Validate CSRF token using the new protection system
+    csrf_validate();
+        
+        $name = trim($_POST['name']);
+        $location = trim($_POST['location']);
+        $ip_address = trim($_POST['ip_address']);
+        $model = trim($_POST['model']);
+        $zyra_id = (int) $_POST['zyra_id'];
+        $resolution = trim($_POST['resolution']);
+        $feed_url = trim($_POST['feed_url']);
+        $username = trim($_POST['username'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        $notes = trim($_POST['notes'] ?? '');
+        
+        if ($name && $location && $ip_address && $feed_url) {
         try {
             $stmt = $pdo->prepare("INSERT INTO security_cameras (name, location, ip_address, model, zyra_id, resolution, feed_url, username, password, notes, installation_date) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_DATE)");
@@ -67,29 +74,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_camera'])) {
 
 // Delete camera
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_camera'])) {
-    $camera_id = (int) $_POST['camera_id'];
-    
-    try {
-        $stmt = $pdo->prepare("DELETE FROM security_cameras WHERE id = ?");
-        $result = $stmt->execute([$camera_id]);
+    // Validate CSRF token using the new protection system
+    csrf_validate();
         
-        if ($result) {
-            $message = "Kamera u fshi me sukses!";
-            $messageType = "success";
-        } else {
-            $message = "Ka ndodhur një gabim gjatë fshirjes së kamerës.";
+        $camera_id = (int) $_POST['camera_id'];
+        
+        try {
+            $stmt = $pdo->prepare("DELETE FROM security_cameras WHERE id = ?");
+            $result = $stmt->execute([$camera_id]);
+            
+            if ($result) {
+                $message = "Kamera u fshi me sukses!";
+                $messageType = "success";
+            } else {
+                $message = "Ka ndodhur një gabim gjatë fshirjes së kamerës.";
+                $messageType = "error";
+            }
+        } catch (PDOException $e) {
+            $message = "Gabim databaze: " . $e->getMessage();
             $messageType = "error";
         }
-    } catch (PDOException $e) {
-        $message = "Gabim databaze: " . $e->getMessage();
-        $messageType = "error";
-    }
+    // }
 }
 
 // Update camera status
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $camera_id = (int) $_POST['camera_id'];
-    $status = $_POST['status'];
+    // Validate CSRF token using the new protection system
+    csrf_validate();
     
     try {
         $stmt = $pdo->prepare("UPDATE security_cameras SET status = ? WHERE id = ?");
@@ -986,6 +997,7 @@ try {
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Jeni të sigurt që doni të fshini këtë kamerë?');">
+                                        <?php echo csrf_field(); ?>
                                         <input type="hidden" name="camera_id" value="<?php echo $camera['id']; ?>">
                                         <button type="submit" name="delete_camera" class="action-icon action-icon-delete">
                                             <i class="fas fa-trash"></i>
@@ -1070,6 +1082,7 @@ try {
             <span class="close-modal">&times;</span>
             <h3 class="modal-title">Shto Kamerë të Re</h3>
             <form method="POST">
+                <?php echo csrf_field(); ?>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="name" class="form-label">Emri i Kamerës</label>

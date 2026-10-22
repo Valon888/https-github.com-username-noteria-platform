@@ -23,6 +23,15 @@ echo "Request method: " . $_SERVER['REQUEST_METHOD'] . "\n\n";
 require_once 'confidb.php';
 require_once 'developer_config.php';
 
+// Define helper function if not exists
+if (!function_exists('isDeveloper')) {
+    function isDeveloper($id, $email) {
+        // Simple check based on email or ID, adjust logic as needed
+        $dev_emails = ['admin@noteria.al'];
+        return in_array($email, $dev_emails);
+    }
+}
+
 echo "[Step 1] Query admins table for email\n";
 $stmt = $pdo->prepare("SELECT id, email, password, emri FROM admins WHERE email = ?");
 $stmt->execute([$_POST['email']]);

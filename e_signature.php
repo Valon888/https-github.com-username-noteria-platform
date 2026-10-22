@@ -25,7 +25,7 @@ $stmt->close();
 
 // Handle document upload for signature
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['document'])) {
-    $document_name = $_POST['document_name'] ?? 'Document';
+    $document_name = htmlspecialchars($_POST['document_name'] ?? 'Document', ENT_QUOTES, 'UTF-8');
     $file = $_FILES['document'];
     
     // Validate file
@@ -33,9 +33,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['document'])) {
     if (!in_array($file['type'], $allowed_types)) {
         $message = "❌ Vetëm PDF dhe Word dokumente lejohen.";
         $status = 'error';
+        // Log security event
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        $stmt = $conn->prepare("INSERT INTO audit_log (user_id, action, details, ip_address, user_agent) VALUES (?, 'file_upload_failed', ?, ?, ?)");
+        $details = "Përpjekje për ngarkim dokumenti me tip të palejuar: " . $file['type'];
+        $stmt->bind_param("ssss", $user_id, $details, $ip_address, $user_agent);
+        $stmt->execute();
+        $stmt->close();
     } elseif ($file['size'] > 5 * 1024 * 1024) { // 5MB
         $message = "❌ Dokumenti nuk duhet të jetë më i madh se 5MB.";
         $status = 'error';
+        // Log security event
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        $stmt = $conn->prepare("INSERT INTO audit_log (user_id, action, details, ip_address, user_agent) VALUES (?, 'file_upload_failed', ?, ?, ?)");
+        $details = "Përpjekje për ngarkim dokumenti shumë të madh: " . $file['size'] . " bytes";
+        $stmt->bind_param("ssss", $user_id, $details, $ip_address, $user_agent);
+        $stmt->execute();
+        $stmt->close();
     } else {
         // Save document
         $upload_dir = __DIR__ . '/uploads/documents/';
@@ -59,10 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['document'])) {
                 $message = "✅ " . $result['message'] . " Kontrolloni email-in tuaj.";
                 $status = 'success';
                 
-                // Log activity
-                $stmt = $conn->prepare("INSERT INTO audit_log (user_id, action, description) VALUES (?, 'document_sent_for_signature', ?)");
+                // Log activity with high security details
+                $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+                $stmt = $conn->prepare("INSERT INTO audit_log (user_id, action, details, ip_address, user_agent) VALUES (?, 'document_sent_for_signature', ?, ?, ?)");
                 $desc = "Dokumenti '$document_name' u dërgua për nënshkrim";
-                $stmt->bind_param("ss", $user_id, $desc);
+                $stmt->bind_param("ssss", $user_id, $desc, $ip_address, $user_agent);
                 $stmt->execute();
                 $stmt->close();
             } else {

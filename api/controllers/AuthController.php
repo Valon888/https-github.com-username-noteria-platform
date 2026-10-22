@@ -39,7 +39,7 @@ class AuthController {
         try {
             // Përgatit query
             $query = "SELECT id, emri, mbiemri, email, fjalekalimi, roli, id_zyra, aktiv 
-                      FROM perdoruesit 
+                      FROM users 
                       WHERE email = :email AND aktiv = 1";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':email', $data['email']);
@@ -208,6 +208,77 @@ class AuthController {
             $this->response->setHttpStatusCode(500);
             $this->response->setSuccess(false);
             $this->response->addMessage("Gabim në sistemin e rivendosjes së fjalëkalimit");
+            $this->response->send();
+        }
+    }
+
+    /**
+     * Regjistrimi i përdoruesit të ri
+     * @param array $data Të dhënat e kërkesës
+     */
+    public function register($data) {
+        // Validimi i të dhënave
+        if (!isset($data['emri']) || !isset($data['mbiemri']) || !isset($data['email']) || 
+            !isset($data['fjalekalimi']) || !isset($data['personal_number']) || !isset($data['telefoni'])) {
+            $this->response->setHttpStatusCode(400);
+            $this->response->setSuccess(false);
+            $this->response->addMessage("Mungojnë të dhënat e kërkuara për regjistrim");
+            $this->response->send();
+            exit;
+        }
+
+        try {
+            // Kontrollo nëse email-i ekziston
+            $query = "SELECT id FROM users WHERE email = :email";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':email', $data['email']);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() > 0) {
+                $this->response->setHttpStatusCode(409);
+                $this->response->setSuccess(false);
+                $this->response->addMessage("Email-i është regjistruar tashmë");
+                $this->response->send();
+                exit;
+            }
+
+            // Hash fjalekalimin
+            $hashedPassword = password_hash($data['fjalekalimi'], PASSWORD_DEFAULT);
+
+            // Shto përdoruesin e ri
+            $query = "INSERT INTO users (emri, mbiemri, email, fjalekalimi, personal_number, telefoni, roli, aktiv, data_regjistrimit) 
+                      VALUES (:emri, :mbiemri, :email, :fjalekalimi, :personal_number, :telefoni, 'perdorues', 1, NOW())";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':emri', $data['emri']);
+            $stmt->bindParam(':mbiemri', $data['mbiemri']);
+            $stmt->bindParam(':email', $data['email']);
+            $stmt->bindParam(':fjalekalimi', $hashedPassword);
+            $stmt->bindParam(':personal_number', $data['personal_number']);
+            $stmt->bindParam(':telefoni', $data['telefoni']);
+            $stmt->execute();
+
+            $userId = $this->db->lastInsertId();
+
+            // Gjenero token për autentikim
+            $token = $this->auth->generateToken($userId);
+
+            $this->response->setHttpStatusCode(201);
+            $this->response->setSuccess(true);
+            $this->response->addMessage("Përdoruesi u regjistrua me sukses");
+            $this->response->setData([
+                'userId' => $userId,
+                'token' => $token
+            ]);
+            $this->response->send();
+
+            // Regjistro aktivitetin
+            $this->logger->logActivity($userId, 'register', 'Regjistrim i ri përdoruesi');
+
+        } catch (Exception $ex) {
+            $this->logger->logError("Gabim gjatë regjistrimit: " . $ex->getMessage(), __FILE__, __LINE__);
+            $this->response->setHttpStatusCode(500);
+            $this->response->setSuccess(false);
+            $this->response->addMessage("Gabim gjatë regjistrimit");
             $this->response->send();
         }
     }

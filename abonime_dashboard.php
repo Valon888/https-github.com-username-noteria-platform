@@ -1,7 +1,7 @@
 <?php
 // abonime_dashboard.php - Dashboard profesional për pagesat automatike të abonimeve
 session_start();
-require_once 'db_connect.php';
+require_once 'confidb.php';
 
 // Merr abonimet dhe transaksionet
 $abonimet = $pdo->query("SELECT na.*, n.emri as user_emri, n.email as user_email, a.emri as abonim_emri, a.cmimi, a.kohezgjatja FROM noteri_abonimet na JOIN noteret n ON na.noter_id = n.id JOIN abonimet a ON na.abonim_id = a.id ORDER BY na.data_mbarimit ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -102,7 +102,7 @@ $transaksionet = $pdo->query("SELECT t.*, na.status as abonim_status, n.emri as 
 </head>
 <body>
 <div class="container">
-    <h1><i class="fas fa-credit-card"></i> Menaxhimi i Abonimeve & Pagesave</h1>
+    <h1><i class="fas fa-credit-card"></i> Menaxhimi i Abonimeve - Zyre Noteriale (150€/muaj)</h1>
     <div class="dashboard-section">
         <h2><i class="fas fa-sync-alt"></i> Abonimet Aktive</h2>
         <table>

@@ -24,7 +24,7 @@ ini_set('error_log', __DIR__ . '/error.log');
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', 1);
 ini_set('session.use_strict_mode', 1);
-ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.cookie_samesite', 'Lax'); // More permissive for development
 
 session_start();
 
@@ -49,11 +49,10 @@ $success = null;
 $rate_limit_error = false;
 
 require_once 'confidb.php';
+require_once 'csrf.php';
 
-// Përgatit CSRF token (gjenerohet në fillim për të shmangur race conditions)
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+// Initialize CSRF protection
+csrf_init();
 
 // ========================================
 // RATE LIMITING (MBROJTJE NDAJ BRUTE FORCE)
@@ -82,14 +81,8 @@ if (isset($_SESSION[$rate_limit_key])) {
 // ========================================
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$rate_limit_error) {
-    // Validim CSRF token
-    $csrf_token_post = $_POST['csrf_token'] ?? null;
-    $csrf_token_session = $_SESSION['csrf_token'] ?? null;
-    
-    if (empty($csrf_token_post) || !hash_equals($csrf_token_session, $csrf_token_post)) {
-        $error = 'Gabim sigurie. Provo përsëri.';
-        log_security_event($pdo, $client_ip, 'csrf_failure');
-    } else {
+    // Validate CSRF token using the new protection system
+    csrf_validate();
         // Marrja dhe sanitizimi i email-it
         $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         
@@ -158,8 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$rate_limit_error) {
                     $success = 'Nëse ky email ekziston në sistem, do të marrësh instruksione për rivendosje.';
                     log_forgot_password_request($pdo, null, $email, 'user_not_found', $client_ip);
                 }
-                
-            } catch (PDOException $e) {
+            }
+            
+            catch (PDOException $e) {
                 error_log('Database error in forgot_password: ' . $e->getMessage());
                 $error = 'Gabim në sistem. Kontaktoni përkrahjen teknikore.';
                 log_security_event($pdo, $client_ip, 'database_error');
@@ -169,7 +163,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$rate_limit_error) {
             }
         }
     }
-}
 
 // ========================================
 // FUNKSIONET E NDIHMËS
@@ -267,6 +260,29 @@ function log_forgot_password_request($pdo, $user_id, $email, $status, $client_ip
         
     } catch (PDOException $e) {
         error_log('Audit log error: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Logjizoj evente sigurie
+ * 
+ * @param PDO $pdo Koneksioni në databazë
+ * @param string $client_ip IP adresa e klientit
+ * @param string $event_type Lloji i eventit
+ */
+function log_security_event($pdo, $client_ip, $event_type) {
+    try {
+        $action = 'Security Event';
+        $details = "Type: {$event_type}";
+        
+        $stmt = $pdo->prepare('
+            INSERT INTO audit_log (user_id, action, details, ip_address, created_at) 
+            VALUES (NULL, ?, ?, ?, NOW())
+        ');
+        $stmt->execute([$action, $details, $client_ip]);
+        
+    } catch (PDOException $e) {
+        error_log('Security log error: ' . $e->getMessage());
     }
 }
 ?>
@@ -584,7 +600,7 @@ function log_forgot_password_request($pdo, $user_id, $email, $status, $client_ip
         <!-- FORMA -->
         <form method="POST" action="" novalidate>
             <!-- CSRF Token -->
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+            <?php echo csrf_field(); ?>
 
             <!-- Email Field -->
             <div class="form-group">

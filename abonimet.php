@@ -40,8 +40,8 @@ try {
         
         // Shto të dhëna demo
         $demo_data = [
-            ['Abonim Mujor', '150.00', 1, 'Abonim mujor me qasje të plotë në platformë', '["Qasje e plotë në platformë", "Dokumente të pakufizuara", "Mbështetje prioritare 24/7", "Të gjitha shërbimet e platformës", "Mjete të avancuara për noterë"]', 'aktiv'],
-            ['Abonim Vjetor', '1500.00', 12, 'Abonim vjetor me qasje të plotë në platformë', '["Qasje e plotë në platformë", "Dokumente të pakufizuara", "Mbështetje prioritare 24/7", "Të gjitha shërbimet e platformës", "Mjete të avancuara për noterë", "Kurseni 300€ me pagesën vjetore", "Trajnime personale", "Këshillime ligjore mujore të përfshira"]', 'aktiv']
+            ['Abonim Mujor', '150.00', 1, 'Abonim mujor standard për noterë', '["Qasje e plotë në platformë", "Dokumente të pakufizuara", "Mbështetje teknike 24/7", "Arkivë digjitale e sigurt", "Gjenerim automatik i raporteve"]', 'aktiv'],
+            ['Abonim Vjetor', '1600.00', 12, 'Abonim vjetor me zbritje', '["Të gjitha benefitet e abonimit mujor", "Zbritje vjetore (Kurseni 200€)", "Trajnime falas për stafin", "Prioritet në mbështetje", "Backup ditor i të dhënave"]', 'aktiv']
         ];
         
         $insert_stmt = $pdo->prepare("INSERT INTO abonimet (emri, cmimi, kohezgjatja, pershkrimi, karakteristikat, status) VALUES (?, ?, ?, ?, ?, ?)");
