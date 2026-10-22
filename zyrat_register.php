@@ -43,6 +43,35 @@ try {
 $success = null;
 $error = null;
 
+// Çmimet e planeve ruhen në sesion që serveri të vendosë shumën e pagesës me kartë
+$_SESSION['stripe_plan_prices'] = [];
+foreach ($plans as $p) {
+    $_SESSION['stripe_plan_prices'][$p['id']] = $p['cmimi'];
+}
+
+// Kontrollon te Stripe që pagesa me kartë është kryer për shumën e saktë të planit
+function verifyStripePayment($paymentIntentId, $abonimId) {
+    $session = $_SESSION['stripe_pi'] ?? null;
+    if (!$session || $paymentIntentId === '' || $session['id'] !== $paymentIntentId || intval($session['abonim_id']) !== intval($abonimId)) {
+        return "Pagesa me kartë nuk u gjet. Provoni përsëri.";
+    }
+    $secret = getenv('STRIPE_SECRET_KEY');
+    if (!$secret) {
+        return "Pagesa me kartë nuk është e konfiguruar.";
+    }
+    try {
+        \Stripe\Stripe::setApiKey($secret);
+        $intent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+    } catch (\Throwable $e) {
+        error_log('Stripe verify error: ' . $e->getMessage());
+        return "Nuk u verifikua pagesa me kartë. Provoni përsëri.";
+    }
+    if ($intent->status !== 'succeeded' || intval($intent->amount_received) !== intval($session['amount'])) {
+        return "Pagesa me kartë nuk u kompletua.";
+    }
+    return null;
+}
+
 // Lista e qyteteve të Kosovës
 $qytetet = [
     "Prishtinë", "Mitrovicë", "Pejë", "Gjakovë", "Ferizaj", "Gjilan", "Prizren",
@@ -135,6 +164,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (!preg_match('/^[A-Z0-9]{5,15}$/', $numri_licences)) {
         $error = "Numri i licencës duhet të përmbajë 5-15 karaktere alfanumerike.";
         error_log("Validation failed: Invalid license number");
+    } elseif ($payment_method === 'credit_card' && ($stripe_error = verifyStripePayment(trim($_POST['payment_intent_id'] ?? ''), $abonim_id))) {
+        $error = $stripe_error;
+        error_log("Validation failed: Stripe - " . $stripe_error);
     } else {
         try {
             // Auto-fix: Check if fjalekalimi column exists and add it if missing
@@ -255,7 +287,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Shto në payment_logs për verifikim të shpejtë me të dhëna telefoni
             $payment_details = "IBAN: $iban, Banka: $banka, Llogaria: $llogaria, Numri Fiskal: $numri_fiskal";
-            $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method'] : "bank_transfer";
+            $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method'] : $payment_method;
+            if ($payment_method === 'credit_card') {
+                $pagesa = $_SESSION['stripe_pi']['amount'] / 100;
+                $payment_details .= ", Stripe PI: " . $_SESSION['stripe_pi']['id'];
+            }
             
             // Add subscription details if available
             if (isset($_SESSION['selected_abonim_id'])) {
@@ -340,7 +376,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
             }
             
+            if ($payment_method === 'credit_card') {
+                $pdo->prepare("UPDATE zyrat SET payment_verified = 1, transaction_id = ? WHERE id = ?")->execute([$_SESSION['stripe_pi']['id'], $zyra_id]);
+            }
+
             $pdo->commit();
+            unset($_SESSION['stripe_pi']);
             // Pas regjistrimit, pastro të dhënat nga sesioni
             unset($_SESSION['teb_payment_success']);
             unset($_SESSION['selected_abonim']);
@@ -1001,6 +1042,7 @@ function sendConfirmationEmail($to, $officeName, $transactionId) {
             }
         }
     </style>
+    <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
     <div class="container">
@@ -1327,36 +1369,13 @@ function sendConfirmationEmail($to, $officeName, $transactionId) {
                             <i class="fab fa-cc-mastercard" style="font-size: 1.5rem;"></i>
                         </div>
                     </div>
-                    
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <label style="font-size: 0.9rem;">Emri në kartelë</label>
-                        <input type="text" name="card_name" placeholder="EMRI MBIEMRI" style="text-transform: uppercase;">
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <label style="font-size: 0.9rem;">Numri i kartelës</label>
-                        <div class="input-with-icon">
-                            <i class="far fa-credit-card"></i>
-                            <input type="text" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19">
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-size: 0.9rem;">Skadon (MM/VV)</label>
-                            <input type="text" name="card_expiry" placeholder="MM/VV" maxlength="5">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-size: 0.9rem;">CVC</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-lock"></i>
-                                <input type="text" name="card_cvc" placeholder="123" maxlength="4">
-                            </div>
-                        </div>
-                    </div>
+                    <div id="stripe-card-element" style="padding: 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;"></div>
+                    <div id="stripe-card-errors" role="alert" style="color:#d32f2f; margin-top:8px; font-size:0.9rem;"></div>
+                    <div class="field-info"><i class="fas fa-lock"></i> Pagesa procesohet nga Stripe. Të dhënat e kartës nuk ruhen te ne.</div>
+                    <input type="hidden" name="payment_intent_id" id="payment_intent_id" value="">
                 </div>
-                
-                <div class="form-group" id="payment_proof_container">
+
+<div class="form-group" id="payment_proof_container">
                     <label for="payment_proof">Dëshmi e pagesës (opsionale):</label>
                     <input type="file" name="payment_proof" id="payment_proof" accept=".pdf,.jpg,.jpeg,.png">
                     <div class="field-info">Ngarko dëshmi të pagesës nëse e keni kryer paraprakisht</div>
@@ -1890,6 +1909,55 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePrice();
     }
 
+    // Stripe: karta mbahet në Element të Stripe dhe konfirmohet para dërgimit të formës
+    let stripeCard = null;
+    const stripeKey = <?php echo json_encode(getenv('STRIPE_PUBLIC_KEY') ?: ''); ?>;
+    const stripeClient = (stripeKey && window.Stripe) ? Stripe(stripeKey) : null;
+
+    function mountStripeCard() {
+        if (!stripeClient || stripeCard) return;
+        stripeCard = stripeClient.elements().create('card', { hidePostalCode: true });
+        stripeCard.mount('#stripe-card-element');
+        stripeCard.on('change', function(ev) {
+            document.getElementById('stripe-card-errors').textContent = ev.error ? ev.error.message : '';
+        });
+    }
+
+    const registerForm = document.getElementById('office-info-form');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async function(e) {
+            const methodEl = document.getElementById('payment_method');
+            if (e.defaultPrevented || !methodEl || methodEl.value !== 'credit_card') return;
+            const piField = document.getElementById('payment_intent_id');
+            if (piField.value) return; // pagesa tashmë u kryer
+            e.preventDefault();
+            const errBox = document.getElementById('stripe-card-errors');
+            const submitBtn = registerForm.querySelector('[type="submit"]');
+            if (!stripeClient || !stripeCard) { errBox.textContent = 'Pagesa me kartë nuk është e disponueshme.'; return; }
+            if (submitBtn) submitBtn.disabled = true;
+            errBox.textContent = '';
+            try {
+                const res = await fetch('stripe_create_intent.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ abonim_id: parseInt(abonimSelector.value, 10) })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Gabim gjatë krijimit të pagesës.');
+                const result = await stripeClient.confirmCardPayment(data.client_secret, {
+                    payment_method: { card: stripeCard, billing_details: { name: document.getElementById('emri').value, email: document.getElementById('email').value } }
+                });
+                if (result.error) throw new Error(result.error.message);
+                if (result.paymentIntent.status !== 'succeeded') throw new Error('Pagesa nuk u kompletua.');
+                piField.value = result.paymentIntent.id;
+                registerForm.submit();
+            } catch (err) {
+                errBox.textContent = err.message;
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+    }
+
     // Toggle payment fields
     window.togglePaymentFields = function() {
         const method = document.getElementById('payment_method').value;
@@ -1898,6 +1966,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (method === 'credit_card') {
             cardForm.style.display = 'block';
+            mountStripeCard();
             if(proofField) proofField.style.display = 'none';
         } else {
             cardForm.style.display = 'none';
