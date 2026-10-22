@@ -1,0 +1,64 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                         QUICK START - 3 HAPAT                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+⭐ OPSIONI MË I SHPEJTË (Recommended)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HAPI 1: Aço phpMyAdmin
+─────────────────────
+  http://localhost/phpmyadmin
+
+
+HAPI 2: Importo SQL-in
+──────────────────────
+  1. Kliko "Import" ose shko në "SQL" tab
+  2. Kliko "Zgjedh fajll"
+  3. Zgjidh: D:\Laragon\www\noteria\db\FULL_SETUP_PHPMYADMIN.sql
+  4. Kliko "Execute"
+  
+  ✓ Ose: Kopjo/pastezo përmbajtjen direkt në SQL editor
+
+
+HAPI 3: Verifikuar
+──────────────────
+  1. Shko në http://localhost/noteria/dashboard.php
+  2. Kontrolo se 18 Mars 2026 është gri (çaktivizuar)
+  3. Kontrolo se 19 Mars 2026 është i zi (aktiv)
+  4. Duhet të shohësh mesazhin "Festa e Fitër Bajramit"
+
+✅ GATA!
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔗 LINQE TË DOBISHME:
+──────────────────────
+
+phpMyAdmin:
+→ http://localhost/phpmyadmin
+
+Dashboard:
+→ http://localhost/noteria/dashboard.php
+
+SQL Fajl për Import:
+→ D:\Laragon\www\noteria\db\FULL_SETUP_PHPMYADMIN.sql
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❓ PROBLEME?
+
+Nëse shfaqet gabim "Table doesn't exist":
+→ Sigurohu që SQL-in u ekzekutua plotësisht
+→ Kontrollo se nuk ka errarash në execution
+
+
+Nëse nuk shfaqet mesazhi i Festës:
+→ Fresco faqen (F5 ose Ctrl+R)
+→ Kontrollo se dashboard.php ka mesazhin e shtuar
+
+
+🆘 NËSE DUHET MË SHUMË NDIHMË:
+→ Shko në fajlin: README_SETUP_FESTA.txt
+→ Ose: PHPMYADMIN_SETUP_GUIDE_VISUAL.txt

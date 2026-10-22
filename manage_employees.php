@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // filepath: d:\xampp\htdocs\noteria\manage_employees.php
 ini_set('display_errors', 1);
 ini_set('log_errors', 1);
@@ -125,7 +125,7 @@ $current_punetore = count($employees);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Menaxho Punëtorët | Noteria</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         :root {
             --primary: #2d6cdf;

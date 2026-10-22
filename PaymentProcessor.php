@@ -1,3 +1,41 @@
+/**
+     * Call MCP server for payment or verification
+     * @param string $endpoint MCP API endpoint (e.g. '/api/payment')
+     * @param array $payload Data to send (will be encoded as JSON)
+     * @param string $method HTTP method (default 'POST')
+     * @return array Response from MCP server (decoded JSON or error)
+     */
+    public function callMcpServer($endpoint, $payload = [], $method = 'POST') {
+        $baseUrl = $_ENV['MCP_SERVER_URL'] ?? 'http://localhost:8000';
+        $url = rtrim($baseUrl, '/') . '/' . ltrim($endpoint, '/');
+    }
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+        ]);
+        if (!empty($payload)) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        }
+
+        $response = curl_exec($ch);
+        $err = curl_error($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($err) {
+            return ['success' => false, 'error' => $err];
+        }
+        if ($code < 200 || $code >= 300) {
+            return ['success' => false, 'error' => 'MCP server error', 'status' => $code, 'body' => $response];
+        }
+        $data = json_decode($response, true);
+        if ($data === null) {
+            return ['success' => false, 'error' => 'Invalid JSON from MCP server', 'body' => $response];
+        }
+        return $data;
+    }
 <?php
 /**
  * Advanced Payment Methods Integration
@@ -6,13 +44,14 @@
 
 class PaymentProcessor {
     private $conn;
-    
-    // Payment gateway credentials
-    private $stripe_key = $_ENV['STRIPE_SECRET_KEY'] ?? 'sk_test_...';
-    private $stripe_public_key = $_ENV['STRIPE_PUBLIC_KEY'] ?? 'pk_test_...';
+    private $stripe_key;
+    private $stripe_public_key;
     
     public function __construct($db_connection) {
         $this->conn = $db_connection;
+        // Payment gateway credentials
+        $this->stripe_key = $_ENV['STRIPE_SECRET_KEY'] ?? 'sk_test_...';
+        $this->stripe_public_key = $_ENV['STRIPE_PUBLIC_KEY'] ?? 'pk_test_...';
     }
     
     /**
@@ -44,11 +83,11 @@ class PaymentProcessor {
             // Store in database
             $stmt = $this->conn->prepare("
                 INSERT INTO payments 
-                (user_id, amount, currency, status, payment_method, transaction_id, description, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                (user_id, amount, status, payment_method, transaction_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
             ");
             
-            $stmt->bind_param("dssssss", $user_id, $amount, $currency, $status, $payment_method, $transaction_id, $description);
+            $stmt->bind_param("ddsss", $user_id, $amount, $status, $payment_method, $transaction_id);
             $stmt->execute();
             $stmt->close();
             
@@ -238,3 +277,17 @@ class PaymentProcessor {
 }
 
 ?>
+<?php
+// Shembull thirrjeje nga PaymentProcessor
+$result = $this->callMcpServer('/api/payment', [
+    'amount' => 100,
+    'currency' => 'EUR'
+]);
+
+if ($result['success']) {
+    // Pagesa ose verifikimi u krye me sukses
+    // $result përmban të dhënat nga MCP serveri
+} else {
+    // Ka ndodhur një gabim
+    error_log('MCP Error: ' . $result['error']);
+}

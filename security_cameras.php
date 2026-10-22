@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once 'confidb.php';
 require_once 'includes/security_functions.php';
@@ -32,7 +32,7 @@ $user_id = $_SESSION['user_id'];
     <title><?php echo $title; ?></title>
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/security-cameras.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon">
 </head>
 <body>

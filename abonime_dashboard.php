@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // abonime_dashboard.php - Dashboard profesional për pagesat automatike të abonimeve
 session_start();
 require_once 'confidb.php';
@@ -14,7 +14,7 @@ $transaksionet = $pdo->query("SELECT t.*, na.status as abonim_status, n.emri as 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard Abonimesh | Noteria</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         body {
             background: linear-gradient(120deg, #e2eafc 0%, #f8fafc 100%);

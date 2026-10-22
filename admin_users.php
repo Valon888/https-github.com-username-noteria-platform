@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Konfigurimi i raportimit të gabimeve
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
@@ -190,7 +190,7 @@ $filtered_users = array_filter($users, function($user) use ($filter_role, $filte
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Menaxhimi i Përdoruesve | Admin Panel | Noteria</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         :root {
             --primary: #2d6cdf;

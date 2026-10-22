@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Redirect to the new abonimet.php page
 session_start();
 header("Location: abonimet.php");
@@ -158,7 +158,7 @@ $recentPayments = getRecentPayments($pdo, 5);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paneli i Abonimeve | Noteria</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         :root {
             --primary-color: #1a56db;

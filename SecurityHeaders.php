@@ -9,7 +9,7 @@ use GeoIp2\Database\Reader;
 
 try {
     // Bllokim IP sipas vendit dhe VPN për përdorim procedural (jo namespace, jo class)
-    $userIp = $_SERVER['REMOTE_ADDR'];
+    $userIp = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
     // Whitelist për zhvilluesin (ndrysho IP ose vendos email nëse duhet)
     $developerWhitelist = [
         '127.0.0.1', // IP lokale

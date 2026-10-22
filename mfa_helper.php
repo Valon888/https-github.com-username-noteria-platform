@@ -11,16 +11,18 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Sonata\GoogleAuthenticator\GoogleAuthenticator;
-
 /**
  * Gjenero unique TOTP secret për përdoruesin
  * 
  * @return string 32-character secret
  */
 function generateMFASecret() {
-    $g = new GoogleAuthenticator();
-    return $g->generateSecret();
+    $secret = '';
+    $base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    for ($i = 0; $i < 32; $i++) {
+        $secret .= $base32chars[random_int(0, 31)];
+    }
+    return $secret;
 }
 
 /**
@@ -66,8 +68,8 @@ function generateQRCodeUrl($email, $secret, $appName = 'Noteria') {
  */
 function verifyTOTPCode($secret, $code) {
     try {
-        $g = new GoogleAuthenticator();
-        return $g->checkCode($secret, $code);
+        $g = new \PHPGangsta_GoogleAuthenticator();
+        return $g->verifyCode($secret, $code, 2);
     } catch (Exception $e) {
         error_log("TOTP verification error: " . $e->getMessage());
         return false;

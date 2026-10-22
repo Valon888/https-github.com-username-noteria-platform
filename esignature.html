@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <title>Nënshkrimi Elektronik</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #signature-pad { border: 2px solid #003366; border-radius: 8px; background: #fff; }
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; background: #003366; color: #fff; font-weight: bold; cursor: pointer; margin-right: 10px; }
+        .btn:disabled { background: #aaa; }
+        .container { max-width: 420px; margin: 40px auto; background: #f8fafc; padding: 32px 24px; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,51,102,0.08); }
+        .status { margin-top: 18px; font-weight: bold; }
+    </style>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <title>Nënshkrimi Elektronik | e-Noteria</title>
+        <style>
+            body { background: linear-gradient(135deg, #e2eafc 0%, #f8fafc 100%); }
+            #signature-pad { border: 2px solid #003366; border-radius: 8px; background: #fff; box-shadow: 0 2px 12px rgba(44,108,223,0.08); cursor: crosshair; }
+            .btn { padding: 10px 18px; border: none; border-radius: 6px; background: #003366; color: #fff; font-weight: bold; cursor: pointer; margin-right: 10px; transition: background 0.2s; }
+            .btn:disabled { background: #aaa; }
+            .btn-download { background: #cfa856; color: #fff; }
+            .btn-download:hover { background: #b8860b; }
+            .container { max-width: 440px; margin: 40px auto; background: #fff; padding: 32px 24px; border-radius: 14px; box-shadow: 0 4px 32px rgba(44,108,223,0.10); }
+            .status { margin-top: 18px; font-weight: bold; min-height: 24px; }
+            h2 { color: #003366; font-weight: 700; margin-bottom: 18px; }
+            .info { color: #184fa3; background: #e2eafc; border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 1rem; text-align: center; }
+            .actions { margin-top: 10px; }
+        </style>
+</head>
+<body>
+<div class="container">
+    <h2>Nënshkruaj Dokumentin</h2>
+    <canvas id="signature-pad" width="380" height="180"></canvas>
+    <div style="margin-top:10px;">
+        <button class="btn" id="clear">Pastro</button>
+        <button class="btn" id="save">Ruaj Nënshkrimin</button>
+    </div>
+    <div class="status" id="status"></div>
+</div>
+    <div class="info">
+        Nënshkruani me dorë të lirë më poshtë. Nënshkrimi juaj do të ruhet i enkriptuar dhe i mbrojtur sipas standardeve më të larta të sigurisë.<br>
+        <span style="font-size:0.95em;color:#b8860b">Të dhënat ruhen vetëm për qëllime ligjore dhe nuk shpërndahen.</span>
+    </div>
+    <div class="actions">
+        <button class="btn btn-download" id="download"><i class="fas fa-download"></i> Shkarko PNG</button>
+    </div>
+<script>
+const canvas = document.getElementById('signature-pad');
+const ctx = canvas.getContext('2d');
+let drawing = false, lastX = 0, lastY = 0;
+ctx.lineWidth = 2;
+ctx.lineCap = 'round';
+ctx.strokeStyle = '#003366';
+
+// Touch support
+canvas.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+        const rect = canvas.getBoundingClientRect();
+        lastX = e.touches[0].clientX - rect.left;
+        lastY = e.touches[0].clientY - rect.top;
+        drawing = true;
+    }
+}, false);
+canvas.addEventListener('touchmove', function(e) {
+    if (drawing && e.touches.length === 1) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.touches[0].clientX - rect.left;
+        const y = e.touches[0].clientY - rect.top;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        lastX = x; lastY = y;
+        e.preventDefault();
+    }
+}, false);
+canvas.addEventListener('touchend', () => { drawing = false; }, false);
+
+canvas.addEventListener('mousedown', e => { drawing = true; lastX = e.offsetX; lastY = e.offsetY; });
+canvas.addEventListener('mousemove', e => { if (drawing) { ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); lastX = e.offsetX; lastY = e.offsetY; } });
+canvas.addEventListener('mouseup', () => { drawing = false; });
+canvas.addEventListener('mouseleave', () => { drawing = false; });
+
+function getCSRFToken() {
+    // Fetch CSRF token dynamically from backend (must exist get_csrf_token.php)
+    return fetch('get_csrf_token.php').then(r => r.text());
+}
+
+document.getElementById('clear').onclick = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); };
+
+document.getElementById('save').onclick = async () => {
+    const dataUrl = canvas.toDataURL('image/png');
+    const status = document.getElementById('status');
+    // Size check (max 500KB)
+    if (dataUrl.length > 700000) {
+        status.textContent = 'Nënshkrimi është shumë i madh. Përdorni një nënshkrim më të vogël.';
+        return;
+    }
+    status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Duke ruajtur...';
+    try {
+        const csrfToken = await getCSRFToken();
+        const resp = await fetch('signature.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'csrf_token=' + encodeURIComponent(csrfToken) + '&signature=' + encodeURIComponent(dataUrl)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            status.innerHTML = '<span style="color:green"><i class="fas fa-check-circle"></i> Nënshkrimi u ruajt me sukses!</span>';
+        } else {
+            status.innerHTML = '<span style="color:#d32f2f"><i class="fas fa-times-circle"></i> Gabim: ' + (data.message || 'Nuk u ruajt.') + '</span>';
+        }
+    } catch (e) {
+        status.innerHTML = '<span style="color:#d32f2f"><i class="fas fa-times-circle"></i> Gabim në rrjet.</span>';
+    }
+};
+document.getElementById('download').onclick = () => {
+    const dataUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'neneshkrimi.png';
+    a.click();
+};
+</script>
+</body>
+</html>

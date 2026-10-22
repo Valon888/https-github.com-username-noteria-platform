@@ -159,21 +159,51 @@ function verifyBktSignature($data, $signature) {
 
 // Update payment status in database
 function updatePaymentStatus($paymentId, $status, $gatewayReference = null, $conn) {
-    $completionDate = ($status == 'completed') ? 'NOW()' : 'NULL';
+    $completionDate = ($status == 'paid' || $status == 'completed') ? 'NOW()' : 'NULL';
+    $finalStatus = ($status == 'completed') ? 'paid' : $status;
     
     $stmt = $conn->prepare("
         UPDATE payments 
         SET status = ?, 
             completion_date = " . $completionDate . ", 
             meta_data = JSON_SET(IFNULL(meta_data, '{}'), '$.gateway_reference', ?)
-        WHERE payment_id = ?
+        WHERE payment_id = ? OR transaction_id = ?
     ");
     
-    $stmt->bind_param("sss", $status, $gatewayReference, $paymentId);
+    $stmt->bind_param("ssss", $finalStatus, $gatewayReference, $paymentId, $paymentId);
     $result = $stmt->execute();
     
+    // Përditëso reservation payment status nëse ka mbiemr_id
+    if ($finalStatus == 'paid') {
+        try {
+            $stmt = $conn->prepare("
+                SELECT user_id, reservation_id FROM payments 
+                WHERE payment_id = ? OR transaction_id = ? 
+                LIMIT 1
+            ");
+            $stmt->bind_param("ss", $paymentId, $paymentId);
+            $stmt->execute();
+            $result_check = $stmt->get_result();
+            
+            if ($result_check->num_rows > 0) {
+                $payment_row = $result_check->fetch_assoc();
+                if ($payment_row['reservation_id']) {
+                    $update_res = $conn->prepare("
+                        UPDATE reservations 
+                        SET payment_status = 'paid', updated_at = NOW() 
+                        WHERE id = ? AND user_id = ?
+                    ");
+                    $update_res->bind_param("ii", $payment_row['reservation_id'], $payment_row['user_id']);
+                    $update_res->execute();
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Error updating reservation status: " . $e->getMessage());
+        }
+    }
+    
     // If payment is completed, update video consultation status
-    if ($status == 'completed') {
+    if ($finalStatus == 'paid') {
         updateVideoConsultationStatus($paymentId, $conn);
     }
     

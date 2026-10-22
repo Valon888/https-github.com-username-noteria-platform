@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Përfshini lidhjet me bazën e të dhënave ose file-at e nevojshëm
 // include 'includes/config.php';
 ?>
@@ -9,7 +9,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Politika e Privatësisë | Noteria</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -376,7 +376,8 @@
     </div>
 
     <div class="footer">
-        <p>&copy; <?php echo date("Y"); ?> Noteria. Të gjitha të drejtat e rezervuara.</p>
+        <p>&copy; <?php echo date("Y"); ?> Platforma e-Noteria.</p>
+        <p>Të gjitha të drejtat e rezervuara. <a href="terms.php">Termat dhe Kushtet</a> | <a href="privacy.php">Politika e Privatësisë</a></p>
         <p><a href="index.php">Kthehu në faqen kryesore</a></p>
     </div>
 </div>

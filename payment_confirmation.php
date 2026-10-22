@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -63,9 +63,9 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success') {
         
         if ($payment_verified) {
             // Përditësimi i databazës me statusin e pagesës
-            $update_query = "UPDATE payments SET status = 'completed', completion_date = NOW(), 
+            $update_query = "UPDATE payments SET status = 'completed', updated_at = NOW(), 
                             expiry_date = DATE_ADD(NOW(), INTERVAL 30 MINUTE)
-                            WHERE payment_id = ? AND user_id = ?";
+                            WHERE uuid = ? AND user_id = ?";
             $stmt = $conn->prepare($update_query);
             $stmt->bind_param("ss", $payment_id, $user_id);
             
@@ -74,7 +74,7 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success') {
                 $message = 'Pagesa u krye me sukses! Ju mund të filloni video konsulencën tani.';
                 
                 // Marrim të dhënat e pagesës nga databaza
-                $select_query = "SELECT * FROM payments WHERE payment_id = ? AND user_id = ?";
+                $select_query = "SELECT * FROM payments WHERE uuid = ? AND user_id = ?";
                 $stmt = $conn->prepare($select_query);
                 $stmt->bind_param("ss", $payment_id, $user_id);
                 $stmt->execute();
@@ -122,7 +122,7 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success') {
         
         try {
             $conn = connectToDatabase();
-            $update_query = "UPDATE payments SET status = 'cancelled' WHERE payment_id = ? AND user_id = ?";
+            $update_query = "UPDATE payments SET status = 'refunded' WHERE uuid = ? AND user_id = ?";
             $stmt = $conn->prepare($update_query);
             $stmt->bind_param("ss", $payment_id, $user_id);
             $stmt->execute();
@@ -143,8 +143,8 @@ if (($service_type === 'video' && empty($_GET['payment'])) || $renew) {
         $conn = connectToDatabase();
         
         // Regjistrojmë pagesën e re në databazë
-        $insert_query = "INSERT INTO payments (payment_id, user_id, amount, currency, service_type, status, creation_date) 
-                        VALUES (?, ?, ?, 'EUR', 'video_consultation', 'pending', NOW())";
+        $insert_query = "INSERT INTO payments (uuid, user_id, amount, service_type, status, created_at, updated_at) 
+                        VALUES (?, ?, ?, 'video_consultation', 'pending', NOW(), NOW())";
         $stmt = $conn->prepare($insert_query);
         $stmt->bind_param("ssd", $payment_id, $user_id, $amount);
         $stmt->execute();
@@ -252,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Noteria | Konfirmimi i Pagesës për Video Konsulencë</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         html, body {
             height: 100%;

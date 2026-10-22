@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noteria — Asistent AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --parchment: #f5f0e8;
+    --gold: #b8962e;
+    --gold-light: #d4af5a;
+    --seal: #8b1a1a;
+    --cream: #faf7f2;
+    --muted: #7a6e60;
+    --border: #e0d8cc;
+    --chat-bg: #ffffff;
+    --user-bubble: #1a1410;
+    --ai-bubble: #f5f0e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-image: 
+      radial-gradient(ellipse at 20% 50%, rgba(184,150,46,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(139,26,26,0.04) 0%, transparent 50%);
+  }
+
+  /* Demo page wrapper */
+  .page {
+    width: 100%;
+    max-width: 900px;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Site header strip */
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    background: var(--ink);
+    border-radius: 4px;
+  }
+
+  .site-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.06em;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 24px;
+  }
+
+  .site-nav a {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    font-weight: 300;
+  }
+
+  /* Main chat card */
+  .chat-card {
+    background: var(--chat-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 32px rgba(26,20,16,0.08), 0 1px 4px rgba(26,20,16,0.04);
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+  }
+
+  /* Chat header */
+  .chat-header {
+    background: var(--ink);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(184,150,46,0.3);
+  }
+
+  .chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--seal));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: white;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .chat-header-info h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 500;
+    color: white;
+    letter-spacing: 0.02em;
+  }
+
+  .chat-header-info p {
+    font-size: 12px;
+    color: var(--gold-light);
+    font-weight: 300;
+    letter-spacing: 0.03em;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4ade80;
+    margin-left: auto;
+    box-shadow: 0 0 6px rgba(74,222,128,0.6);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Messages area */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Message bubbles */
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 82%;
+    animation: fadeUp 0.3s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+
+  .message.ai {
+    align-self: flex-start;
+  }
+
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .message.ai .msg-avatar {
+    background: linear-gradient(135deg, var(--gold), #8b6914);
+    color: white;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+  }
+
+  .message.user .msg-avatar {
+    background: var(--ink);
+    color: rgba(255,255,255,0.8);
+    font-size: 11px;
+  }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .message.ai .bubble {
+    background: var(--ai-bubble);
+    color: var(--ink);
+    border-top-left-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .message.user .bubble {
+    background: var(--user-bubble);
+    color: white;
+    border-top-right-radius: 4px;
+  }
+
+  /* Quick replies */
+  .quick-replies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+    padding-left: 42px;
+    animation: fadeUp 0.4s ease 0.1s forwards;
+    opacity: 0;
+  }
+
+  .quick-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
+  .quick-btn:hover {
+    background: var(--gold);
+    color: white;
+  }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: fadeUp 0.3s ease forwards;
+  }
+
+  .typing-dots {
+    background: var(--ai-bubble);
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    border-radius: 16px;
+    border-top-left-radius: 4px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* Input area */
+  .chat-input-area {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    background: var(--parchment);
+  }
+
+  .input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 10px 16px;
+    gap: 8px;
+    transition: border-color 0.2s;
+  }
+
+  .input-wrapper:focus-within {
+    border-color: var(--gold);
+  }
+
+  #userInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: transparent;
+    resize: none;
+    max-height: 100px;
+    line-height: 1.5;
+  }
+
+  #userInput::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover { background: var(--gold); transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .send-btn svg { width: 16px; height: 16px; fill: white; }
+
+  /* Info strip below */
+  .info-strip {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+
+  .info-strip strong { color: var(--gold); font-weight: 500; }
+
+  /* Appointment card in chat */
+  .appointment-card {
+    background: white;
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .appointment-card .appt-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .appt-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-size: 12.5px;
+  }
+
+  .appt-row span { color: var(--ink); font-weight: 500; }
+
+  .appt-confirm-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 9px;
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: background 0.2s;
+  }
+
+  .appt-confirm-btn:hover { background: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Fake site header -->
+  <div class="site-header">
+    <div class="site-logo">N O T E R I A</div>
+    <nav class="site-nav">
+      <a href="#">Shërbimet</a>
+      <a href="#">Tarifat</a>
+      <a href="#">Kontakti</a>
+      <a href="#">Rezervo</a>
+    </nav>
+  </div>
+
+  <!-- Chat widget -->
+  <div class="chat-card">
+    <div class="chat-header">
+      <div class="chat-avatar">N</div>
+      <div class="chat-header-info">
+        <h3>Asistenti i Noterisë</h3>
+        <p>I fuqizuar nga Noteria AI · Disponibël 24/7</p>
+      </div>
+      <div class="status-dot"></div>
+    </div>
+
+    <div class="messages" id="messages">
+      <!-- Initial message injected by JS -->
+    </div>
+
+    <div class="chat-input-area">
+      <div class="input-wrapper">
+        <textarea id="userInput" placeholder="Shkruani pyetjen tuaj..." rows="1"></textarea>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-strip">
+    Demo · <strong>Noteria AI Chatbot</strong> · Fuqizuar nga Claude AI · noteria.com
+  </div>
+
+</div>
+
+<script>
+const SYSTEM_PROMPT = `Ju jeni asistenti AI i një zyre noteriale në Kosovë, i integruar në platformën Noteria. Emri juaj është "Asistenti i Noterisë".
+
+Detyrat tuaja:
+1. INFORMONI klientët për shërbimet noteriale (kontrata shitjeje, prokura, testamente, vërtetime, legalizime, etj.)
+2. NDIHMONI me rezervimin e takimeve — kur klienti dëshiron takim, mbledhni: emrin, llojin e shërbimit dhe datën e preferuar, pastaj konfirmoni rezervimin
+3. SHPJEGONI dokumentet e nevojshme për çdo shërbim
+4. PËRGJIGJESNI 24/7 me ton profesional dhe miqësor
+
+Të dhëna të zyrës:
+- Orari: E Hënë–E Premte, 08:00–17:00
+- Adresa: Rr. "Nëna Terezë", Prishtinë
+- Tel: +383 44 000 000
+
+Rregulla:
+- Gjithmonë flisni shqip
+- Jini konciz dhe të qartë
+- Për çështje ligjore komplekse, sugjeroni takim personal
+- Kur dikush kërkon takim, gjithmonë konfirmoni me: "REZERVIM_KONFIRMUAR: [emri] | [shërbimi] | [data]" në fund të mesazhit (fshehur, jo i dukshëm — vetëm ky format)
+- Mos ofroni këshilla ligjore specifike, vetëm informacion të përgjithshëm`;
+
+let conversationHistory = [];
+let isTyping = false;
+
+function addMessage(role, content, quickReplies = null, appointmentData = null) {
+  const messagesEl = document.getElementById('messages');
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message ${role}`;
+  
+  const avatarDiv = document.createElement('div');
+  avatarDiv.className = 'msg-avatar';
+  avatarDiv.textContent = role === 'ai' ? 'N' : 'Ju';
+  
+  const bubbleDiv = document.createElement('div');
+  bubbleDiv.className = 'bubble';
+  bubbleDiv.innerHTML = content.replace(/\n/g, '<br>');
+  
+  if (role === 'ai') {
+    msgDiv.appendChild(avatarDiv);
+    msgDiv.appendChild(bubbleDiv);
+  } else {
+    msgDiv.appendChild(bubbleDiv);
+    msgDiv.appendChild(avatarDiv);
+  }
+  
+  messagesEl.appendChild(msgDiv);
+  
+  if (appointmentData) {
+    const card = createAppointmentCard(appointmentData);
+    messagesEl.appendChild(card);
+  }
+  
+  if (quickReplies && quickReplies.length > 0) {
+    const qrDiv = document.createElement('div');
+    qrDiv.className = 'quick-replies';
+    quickReplies.forEach(qr => {
+      const btn = document.createElement('button');
+      btn.className = 'quick-btn';
+      btn.textContent = qr;
+      btn.onclick = () => {
+        qrDiv.remove();
+        handleUserMessage(qr);
+      };
+      qrDiv.appendChild(btn);
+    });
+    messagesEl.appendChild(qrDiv);
+  }
+  
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function createAppointmentCard(data) {
+  const div = document.createElement('div');
+  div.style.paddingLeft = '42px';
+  div.innerHTML = `
+    <div class="appointment-card">
+      <div class="appt-title">📋 Konfirmim Rezervimi</div>
+      <div class="appt-row">👤 Emri: <span>${data.name}</span></div>
+      <div class="appt-row">📝 Shërbimi: <span>${data.service}</span></div>
+      <div class="appt-row">📅 Data: <span>${data.date}</span></div>
+      <div class="appt-row">🕐 Ora: <span>08:00–17:00 (do të konfirmohet)</span></div>
+      <button class="appt-confirm-btn" onclick="this.textContent='✓ Rezervimi u dërgua!'; this.style.background='#16a34a';">
+        Konfirmo Rezervimin
+      </button>
+    </div>
+  `;
+  return div;
+}
+
+function showTyping() {
+  const messagesEl = document.getElementById('messages');
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'typing-indicator';
+  typingDiv.id = 'typing';
+  typingDiv.innerHTML = `
+    <div class="msg-avatar" style="background:linear-gradient(135deg,#b8962e,#8b6914);color:white;font-family:'Cormorant Garamond',serif;font-size:15px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">N</div>
+    <div class="typing-dots"><span></span><span></span><span></span></div>
+  `;
+  messagesEl.appendChild(typingDiv);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function hideTyping() {
+  const typing = document.getElementById('typing');
+  if (typing) typing.remove();
+}
+
+async function callClaude(userMessage) {
+  conversationHistory.push({ role: 'user', content: userMessage });
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: conversationHistory
+    })
+  });
+  
+  const data = await response.json();
+  const assistantMessage = data.content[0].text;
+  conversationHistory.push({ role: 'assistant', content: assistantMessage });
+  return assistantMessage;
+}
+
+function parseResponse(text) {
+  // Check for appointment confirmation
+  const apptMatch = text.match(/REZERVIM_KONFIRMUAR:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^\n]+)/i);
+  let appointmentData = null;
+  
+  if (apptMatch) {
+    appointmentData = {
+      name: apptMatch[1].trim(),
+      service: apptMatch[2].trim(),
+      date: apptMatch[3].trim()
+    };
+  }
+  
+  // Clean the text - remove the hidden confirmation string
+  let cleanText = text.replace(/REZERVIM_KONFIRMUAR:[^\n]*/gi, '').trim();
+  
+  return { cleanText, appointmentData };
+}
+
+function getQuickReplies(text) {
+  const lower = text.toLowerCase();
+  if (lower.includes('shërbim') || lower.includes('ndihmoj') || lower.includes('mirëseardhj')) {
+    return ['📋 Kontratë shitjeje', '✍️ Prokurë', '📜 Testament', '✅ Vërtetim'];
+  }
+  if (lower.includes('dokument') || lower.includes('nevojit')) {
+    return ['📅 Rezervo takim', '💰 Çmimet', '📞 Kontaktoni'];
+  }
+  return [];
+}
+
+async function handleUserMessage(text) {
+  if (isTyping) return;
+  isTyping = true;
+  
+  document.getElementById('sendBtn').disabled = true;
+  addMessage('user', text);
+  showTyping();
+  
+  try {
+    const response = await callClaude(text);
+    hideTyping();
+    const { cleanText, appointmentData } = parseResponse(response);
+    const quickReplies = getQuickReplies(cleanText);
+    addMessage('ai', cleanText, quickReplies, appointmentData);
+  } catch (error) {
+    hideTyping();
+    addMessage('ai', 'Ndodhi një gabim. Ju lutemi provoni përsëri ose na kontaktoni drejtpërdrejt.');
+  }
+  
+  isTyping = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+  input.value = '';
+  input.style.height = 'auto';
+  handleUserMessage(text);
+}
+
+// Auto-resize textarea
+document.getElementById('userInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+document.getElementById('userInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Initial greeting
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    addMessage('ai', 
+      'Mirësevini në shërbimin e Noterisë! 👋\n\nUnë jam asistenti juaj AI, i disponibël 24 orë. Mund t\'ju ndihmoj me:\n\n• Informacion për shërbimet noteriale\n• Rezervim takimesh\n• Dokumentet e nevojshme\n\nSi mund t\'ju ndihmoj sot?',
+      ['📋 Shërbimet', '📅 Rezervo takim', '📄 Dokumentet', '💰 Çmimet']
+    );
+  }, 400);
+});
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once 'confidb.php';
 // Merr të dhënat nga POST ose SESSION
@@ -117,6 +117,7 @@ if (!$service || !$date || !$time || !$zyra_id) {
         <?php endif; ?>
         <div class="back-link"><a href="dashboard.php">Kthehu në panel</a></div>
     </div>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
 </body>
 </html>
+

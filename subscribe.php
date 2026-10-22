@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once 'includes/db_connection.php';
 require_once 'includes/functions.php';
@@ -51,9 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe'])) {
     
     // Regjistro pagesën
     $stmt = $pdo->prepare("INSERT INTO payments 
-        (zyra_id, amount, payment_date, payment_method, description, status) 
-        VALUES (?, 150.00, CURRENT_TIMESTAMP, ?, 'Pagesa për abonimin mujor', 'completed')");
-    $stmt->execute([$zyra_id, $_POST['payment_method']]);
+        (user_id, amount, payment_method, status, service_type, created_at, updated_at) 
+        VALUES (?, 150.00, ?, 'completed', 'subscription', NOW(), NOW())");
+    $stmt->execute([$user_id, $_POST['payment_method']]);
     
     $successMessage = "Abonimi juaj u aktivizua me sukses deri më " . date('d.m.Y', strtotime($expiryDate));
     
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abonohu në Platformë - Noteria</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/all.min.css">
     <style>
         .subscription-container {
             max-width: 900px;
